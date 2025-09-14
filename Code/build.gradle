@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories { mavenCentral() }
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+tasks.test { useJUnitPlatform() }
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+}
+
+application {
+    // We'll run the micro-bench as a tiny app:
+    mainClass = 'bench.MicroBench'
+}
