@@ -1,10 +1,40 @@
 package bst;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-import java.util.ArrayDeque;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.Objects;
 
 public class MyBST<K extends Comparable<? super K>, V> {
+    //--------------------------------------------------------------------------------
+    // HANDSHAKE CONSTANTS AND FIELDS
+    //--------------------------------------------------------------------------------
+    private static final int IDLE_PHASE = -1;
+    private static final int FAST_PHASE = -2;
+    private static final int MAX_THREADS = 256;  // Maximum number of threads
+    
+    private final AtomicLong sizePhase;  // Global phase counter for handshakes
+    private final AtomicLong[] opPhase;  // Per-thread phase array
+    private final AtomicLong[] fastMetadataCounters;  // Per-thread fast path size counters
+    private final AtomicLong maxThreadID;  // Track highest thread ID seen (for optimization)
+    
+    // Debug/profiling counters
+    public final AtomicLong totalHandshakes = new AtomicLong(0);
+    public final AtomicLong totalHandshakeTimeNanos = new AtomicLong(0);
+    public final AtomicLong totalSizeCalls = new AtomicLong(0);
+    
+    // ThreadLocal for stable thread IDs
+    private static final ThreadLocal<Integer> threadID = ThreadLocal.withInitial(() -> {
+        return ThreadIDAllocator.allocate();
+    });
+    
+    // Simple thread ID allocator
+    private static class ThreadIDAllocator {
+        private static final AtomicLong counter = new AtomicLong(0);
+        static int allocate() {
+            return (int) counter.getAndIncrement();
+        }
+    }
+    
     //--------------------------------------------------------------------------------
     // Class: Node, LeafNode, InternalNode
     //--------------------------------------------------------------------------------
@@ -20,13 +50,15 @@ public class MyBST<K extends Comparable<? super K>, V> {
         final E key;
         final Version<E> left;
         final Version<E> right;
-        final int nbChild;    // sum of keys if K is Integer; else 0
+        final int nbChild;    // slow path metadata: count of nodes in subtree
+        final Node<E,?> node; // reference back to node for accessing fast path metadata
 
-        Version(E key, Version<E> left, Version<E> right, int nbChild) {
+        Version(E key, Version<E> left, Version<E> right, int nbChild, Node<E,?> node) {
             this.key = key;
             this.left = left;
             this.right = right;
             this.nbChild = nbChild;
+            this.node = node;
         }
     }
 
@@ -37,8 +69,8 @@ public class MyBST<K extends Comparable<? super K>, V> {
         LeafNode(final E key, final V value) {
             super(key);
             this.value = value;
-            int s = (key == null) ? 0 : 1;
-            this.version = new Version<>(key, null, null, s);
+            // Start with nbChild=0; will be updated via propagate() in slow path only
+            this.version = new Version<>(key, null, null, 0, this);
         }
     }
 
@@ -48,6 +80,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
         volatile Node<E,V> parent;
         volatile Info<E,V> info;
         volatile Version<E> version;
+        final AtomicLong fastSize;  // Fast path metadata for size
 
 
         InternalNode(final E key, final LeafNode<E,V> left, final LeafNode<E,V> right) {
@@ -59,8 +92,9 @@ public class MyBST<K extends Comparable<? super K>, V> {
             if (right != null)  right.parent = this;
             Version<E> vL = left.version;
             Version<E> vR = right.version;
-            final int nb = (vL != null ? vL.nbChild : 0) + (vR != null ? vR.nbChild : 0);
-            this.version = new Version<>(key, vL, vR, nb);
+            // Version tree starts at 0, only updated via propagate() (slow path)
+            this.fastSize = new AtomicLong(0);  // Not currently used
+            this.version = new Version<>(key, vL, vR, 0, this);
         }
     }
 
@@ -115,6 +149,16 @@ public class MyBST<K extends Comparable<? super K>, V> {
     final InternalNode<K,V> root;
 
     public MyBST() {
+        // Initialize handshake infrastructure
+        this.sizePhase = new AtomicLong(4);  // Start at 4 (divisible by 4 means fast path)
+        this.opPhase = new AtomicLong[MAX_THREADS];
+        this.fastMetadataCounters = new AtomicLong[MAX_THREADS];
+        this.maxThreadID = new AtomicLong(-1);  // Track highest thread ID for optimization
+        for (int i = 0; i < MAX_THREADS; i++) {
+            this.opPhase[i] = new AtomicLong(IDLE_PHASE);
+            this.fastMetadataCounters[i] = new AtomicLong(0);
+        }
+        
         // to avoid handling special case when <= 2 nodes,
         // create 2 dummy nodes, both contain key null
         // All real keys inside BST are required to be non-null
@@ -148,62 +192,87 @@ public class MyBST<K extends Comparable<? super K>, V> {
     /** PRECONDITION: key, value CANNOT BE NULL **/
     public final V putIfAbsent(final K key, final V value){
         if (key == null || value == null) throw new NullPointerException();
-        InternalNode<K,V> newInternal;
-        LeafNode<K,V> newSibling, newNode;
+        
+        // Announce we're starting an operation
+        long phase = getSizePhase();
+        boolean useFastPath = (phase % 4 == 0);
+        setOpPhaseVolatile(useFastPath ? FAST_PHASE : phase);
+        
+        try {
+            InternalNode<K,V> newInternal;
+            LeafNode<K,V> newSibling, newNode;
 
-        /** SEARCH VARIABLES **/
-        InternalNode<K,V> p;
-        Info<K,V> pinfo;
-        Node<K,V> l;
-        /** END SEARCH VARIABLES **/
+            /** SEARCH VARIABLES **/
+            InternalNode<K,V> p;
+            Info<K,V> pinfo;
+            Node<K,V> l;
+            /** END SEARCH VARIABLES **/
 
-        newNode = new LeafNode<K,V>(key, value);
+            newNode = new LeafNode<K,V>(key, value);
 
-        while (true) {
+            while (true) {
+                // Re-check phase on every retry to respond quickly to handshakes
+                long newPhase = getSizePhase();
+                boolean newFastPath = (newPhase % 4 == 0);
+                if (newFastPath != useFastPath) {
+                    useFastPath = newFastPath;
+                    setOpPhaseVolatile(useFastPath ? FAST_PHASE : newPhase);
+                }
 
-            /** SEARCH **/
-            p = root;
-            l = p.left;
-            while (l.getClass() == InternalNode.class) {
-                p = (InternalNode<K,V>)l;
-                l = (p.key == null || key.compareTo(p.key) < 0) ? p.left : p.right;
-            }
-            pinfo = p.info;                             // read pinfo once instead of every iteration
-            if (l != p.left && l != p.right) continue;  // then confirm the child link to l is valid
-            // (just as if we'd read p's info field before the reference to l)
-            /** END SEARCH **/
+                /** SEARCH **/
+                p = root;
+                l = p.left;
+                while (l.getClass() == InternalNode.class) {
+                    p = (InternalNode<K,V>)l;
+                    l = (p.key == null || key.compareTo(p.key) < 0) ? p.left : p.right;
+                }
+                pinfo = p.info;                             // read pinfo once instead of every iteration
+                if (l != p.left && l != p.right) continue;  // then confirm the child link to l is valid
+                // (just as if we'd read p's info field before the reference to l)
+                /** END SEARCH **/
 
-            LeafNode<K,V> foundLeaf = (LeafNode<K,V>)l;
+                LeafNode<K,V> foundLeaf = (LeafNode<K,V>)l;
 
-            if (key.equals(foundLeaf.key)) {
-                propagate(p);
-                return foundLeaf.value; // key already in the tree, no duplicate allowed
-            } else if (!(pinfo == null || pinfo.getClass() == Clean.class)) {
-                help(pinfo);
-            } else {
-                newSibling = new LeafNode<K,V>(foundLeaf.key, foundLeaf.value);
-                if (foundLeaf.key == null || key.compareTo(foundLeaf.key) < 0)  // newinternal = max(ret.foundLeaf.key, key);
-                    newInternal = new InternalNode<K,V>(foundLeaf.key, newNode, newSibling);
-                else
-                    newInternal = new InternalNode<K,V>(key, newSibling, newNode);
-
-                newInternal.parent = p;
-                newSibling.parent = newInternal; newNode.parent = newInternal;
-
-                final IInfo<K,V> newPInfo = new IInfo<K,V>(foundLeaf, p, newInternal);
-
-                // try to IFlag parent
-                if (infoUpdater.compareAndSet(p, pinfo, newPInfo)) {
-                    helpInsert(newPInfo);
-                    propagate(p);
-                    return null;
+                if (key.equals(foundLeaf.key)) {
+                    if (!useFastPath) propagate(p);
+                    return foundLeaf.value; // key already in the tree, no duplicate allowed
+                } else if (!(pinfo == null || pinfo.getClass() == Clean.class)) {
+                    help(pinfo);
                 } else {
-                    // if fails, help the current operation
-                    // [CHECK]
-                    // need to get the latest p.info since CAS doesnt return current value
-                    help(p.info);
+                    newSibling = new LeafNode<K,V>(foundLeaf.key, foundLeaf.value);
+                    if (foundLeaf.key == null || key.compareTo(foundLeaf.key) < 0)  // newinternal = max(ret.foundLeaf.key, key);
+                        newInternal = new InternalNode<K,V>(foundLeaf.key, newNode, newSibling);
+                    else
+                        newInternal = new InternalNode<K,V>(key, newSibling, newNode);
+
+                    newInternal.parent = p;
+                    newSibling.parent = newInternal; newNode.parent = newInternal;
+
+                    final IInfo<K,V> newPInfo = new IInfo<K,V>(foundLeaf, p, newInternal);
+
+                    // try to IFlag parent
+                    if (infoUpdater.compareAndSet(p, pinfo, newPInfo)) {
+                        helpInsert(newPInfo, useFastPath);
+                        
+                        // Update metadata - successful insert
+                        if (useFastPath) {
+                            fastUpdateMetadata(1);  // Fast path: simple atomic increment
+                        } else {
+                            propagate(p);  // Slow path: full propagation
+                        }
+                        
+                        return null;
+                    } else {
+                        // if fails, help the current operation
+                        // [CHECK]
+                        // need to get the latest p.info since CAS doesnt return current value
+                        help(p.info);
+                    }
                 }
             }
+        } finally {
+            // Return to idle phase
+            setOpPhaseIdle();
         }
     }
 
@@ -212,68 +281,95 @@ public class MyBST<K extends Comparable<? super K>, V> {
     /** PRECONDITION: key, value CANNOT BE NULL **/
     public final V put(final K key, final V value) {
         if (key == null || value == null) throw new NullPointerException();
-        InternalNode<K, V> newInternal;
-        LeafNode<K, V> newSibling, newNode;
-        IInfo<K, V> newPInfo;
-        V result;
+        
+        // Announce we're starting an operation
+        long phase = getSizePhase();
+        boolean useFastPath = (phase % 4 == 0);
+        setOpPhaseVolatile(useFastPath ? FAST_PHASE : phase);
+        
+        try {
+            InternalNode<K, V> newInternal;
+            LeafNode<K, V> newSibling, newNode;
+            IInfo<K, V> newPInfo;
+            V result;
 
-        /** SEARCH VARIABLES **/
-        InternalNode<K, V> p;
-        Info<K, V> pinfo;
-        Node<K, V> l;
-        /** END SEARCH VARIABLES **/
-        newNode = new LeafNode<K, V>(key, value);
+            /** SEARCH VARIABLES **/
+            InternalNode<K, V> p;
+            Info<K, V> pinfo;
+            Node<K, V> l;
+            /** END SEARCH VARIABLES **/
+            newNode = new LeafNode<K, V>(key, value);
 
-        while (true) {
+            while (true) {
+                // Re-check phase on every retry to respond quickly to handshakes
+                long newPhase = getSizePhase();
+                boolean newFastPath = (newPhase % 4 == 0);
+                if (newFastPath != useFastPath) {
+                    useFastPath = newFastPath;
+                    setOpPhaseVolatile(useFastPath ? FAST_PHASE : newPhase);
+                }
 
-            /** SEARCH **/
-            p = root;
-            l = p.left;
-            while (l.getClass() == InternalNode.class) {
-                p = (InternalNode<K,V>)l;
-                l = (p.key == null || key.compareTo(p.key) < 0) ? p.left : p.right;
-            }
-            pinfo = p.info;                             // read pinfo once instead of every iteration
-            if (l != p.left && l != p.right) continue;  // then confirm the child link to l is valid
-            // (just as if we'd read p's info field before the reference to l)
-            /** END SEARCH **/
+                /** SEARCH **/
+                p = root;
+                l = p.left;
+                while (l.getClass() == InternalNode.class) {
+                    p = (InternalNode<K,V>)l;
+                    l = (p.key == null || key.compareTo(p.key) < 0) ? p.left : p.right;
+                }
+                pinfo = p.info;                             // read pinfo once instead of every iteration
+                if (l != p.left && l != p.right) continue;  // then confirm the child link to l is valid
+                // (just as if we'd read p's info field before the reference to l)
+                /** END SEARCH **/
 
-            if (!(pinfo == null || pinfo.getClass() == Clean.class)) {
-                help(pinfo);
-            } else {
-                LeafNode<K,V> foundLeaf = (LeafNode<K,V>)l;
-
-                if (key.equals(foundLeaf.key)) {
-                    // key already in the tree, try to replace the old node with new node
-                    newPInfo = new IInfo<K, V>(foundLeaf, p, newNode);
-                    propagate(p);
-                    result = foundLeaf.value;
+                if (!(pinfo == null || pinfo.getClass() == Clean.class)) {
+                    help(pinfo);
                 } else {
-                    // key is not in the tree, try to replace a leaf with a small subtree
-                    newSibling = new LeafNode<K, V>(foundLeaf.key, foundLeaf.value);
-                    if (foundLeaf.key == null || key.compareTo(foundLeaf.key) < 0) // newinternal = max(ret.foundLeaf.key, key);
-                    {
-                        newInternal = new InternalNode<K, V>(foundLeaf.key, newNode, newSibling);
+                    LeafNode<K,V> foundLeaf = (LeafNode<K,V>)l;
+
+                    if (key.equals(foundLeaf.key)) {
+                        // key already in the tree, try to replace the old node with new node
+                        newPInfo = new IInfo<K, V>(foundLeaf, p, newNode);
+                        if (!useFastPath) propagate(p);
+                        result = foundLeaf.value;
                     } else {
-                        newInternal = new InternalNode<K, V>(key, newSibling, newNode);
+                        // key is not in the tree, try to replace a leaf with a small subtree
+                        newSibling = new LeafNode<K, V>(foundLeaf.key, foundLeaf.value);
+                        if (foundLeaf.key == null || key.compareTo(foundLeaf.key) < 0) // newinternal = max(ret.foundLeaf.key, key);
+                        {
+                            newInternal = new InternalNode<K, V>(foundLeaf.key, newNode, newSibling);
+                        } else {
+                            newInternal = new InternalNode<K, V>(key, newSibling, newNode);
+                        }
+                        newInternal.parent = p;
+                        newSibling.parent = newInternal; newNode.parent = newInternal;
+                        newPInfo = new IInfo<K, V>(foundLeaf, p, newInternal);
+                        result = null;
                     }
-                    newInternal.parent = p;
-                    newSibling.parent = newInternal; newNode.parent = newInternal;
-                    newPInfo = new IInfo<K, V>(foundLeaf, p, newInternal);
-                    result = null;
-                }
 
-                // try to IFlag parent
-                if (infoUpdater.compareAndSet(p, pinfo, newPInfo)) {
-                    helpInsert(newPInfo);
-                    propagate(p);
-                    return result;
-                } else {
-                    // if fails, help the current operation
-                    // need to get the latest p.info since CAS doesnt return current value
-                    help(p.info);
+                    // try to IFlag parent
+                    if (infoUpdater.compareAndSet(p, pinfo, newPInfo)) {
+                        helpInsert(newPInfo, useFastPath);
+                        
+                        // Update metadata based on path
+                        if (result == null) {  // Successful insert
+                            if (useFastPath) {
+                                fastUpdateMetadata(1);  // Fast path: simple atomic increment
+                            } else {
+                                propagate(p);  // Slow path: full propagation
+                            }
+                        }
+                        
+                        return result;
+                    } else {
+                        // if fails, help the current operation
+                        // need to get the latest p.info since CAS doesnt return current value
+                        help(p.info);
+                    }
                 }
             }
+        } finally {
+            // Return to idle phase
+            setOpPhaseIdle();
         }
     }
 
@@ -281,57 +377,83 @@ public class MyBST<K extends Comparable<? super K>, V> {
     /** PRECONDITION: key CANNOT BE NULL **/
     public final V remove(final K key){
         if (key == null) throw new NullPointerException();
+        
+        // Announce we're starting an operation
+        long phase = getSizePhase();
+        boolean useFastPath = (phase % 4 == 0);
+        setOpPhaseVolatile(useFastPath ? FAST_PHASE : phase);
+        
+        try {
+            /** SEARCH VARIABLES **/
+            InternalNode<K,V> gp;
+            Info<K,V> gpinfo;
+            InternalNode<K,V> p;
+            Info<K,V> pinfo;
+            Node<K,V> l;
+            /** END SEARCH VARIABLES **/
 
-        /** SEARCH VARIABLES **/
-        InternalNode<K,V> gp;
-        Info<K,V> gpinfo;
-        InternalNode<K,V> p;
-        Info<K,V> pinfo;
-        Node<K,V> l;
-        /** END SEARCH VARIABLES **/
+            while (true) {
+                // Re-check phase on every retry to respond quickly to handshakes
+                long newPhase = getSizePhase();
+                boolean newFastPath = (newPhase % 4 == 0);
+                if (newFastPath != useFastPath) {
+                    useFastPath = newFastPath;
+                    setOpPhaseVolatile(useFastPath ? FAST_PHASE : newPhase);
+                }
 
-        while (true) {
+                /** SEARCH **/
+                gp = null;
+                gpinfo = null;
+                p = root;
+                pinfo = p.info;
+                l = p.left;
+                while (l.getClass() == InternalNode.class) {
+                    gp = p;
+                    p = (InternalNode<K, V>) l;
+                    l = (p.key == null || key.compareTo(p.key) < 0) ? p.left : p.right;
+                }
+                // note: gp can be null here, because clearly the root.left.left == null
+                //       when the tree is empty. however, in this case, l.key will be null,
+                //       and the function will return null, so this does not pose a problem.
+                if (gp != null) {
+                    gpinfo = gp.info;                               // - read gpinfo once instead of every iteration
+                    if (p != gp.left && p != gp.right) continue;    //   then confirm the child link to p is valid
+                    pinfo = p.info;                                 //   (just as if we'd read gp's info field before the reference to p)
+                    if (l != p.left && l != p.right) continue;      // - do the same for pinfo and l
+                }
+                /** END SEARCH **/
 
-            /** SEARCH **/
-            gp = null;
-            gpinfo = null;
-            p = root;
-            pinfo = p.info;
-            l = p.left;
-            while (l.getClass() == InternalNode.class) {
-                gp = p;
-                p = (InternalNode<K, V>) l;
-                l = (p.key == null || key.compareTo(p.key) < 0) ? p.left : p.right;
-            }
-            // note: gp can be null here, because clearly the root.left.left == null
-            //       when the tree is empty. however, in this case, l.key will be null,
-            //       and the function will return null, so this does not pose a problem.
-            if (gp != null) {
-                gpinfo = gp.info;                               // - read gpinfo once instead of every iteration
-                if (p != gp.left && p != gp.right) continue;    //   then confirm the child link to p is valid
-                pinfo = p.info;                                 //   (just as if we'd read gp's info field before the reference to p)
-                if (l != p.left && l != p.right) continue;      // - do the same for pinfo and l
-            }
-            /** END SEARCH **/
-
-            if (!key.equals(l.key)) {
-                propagate(p); return null;
-            }else if (!(gpinfo == null || gpinfo.getClass() == Clean.class)) {
-                help(gpinfo);
-            } else if (!(pinfo == null || pinfo.getClass() == Clean.class)) {
-                help(pinfo);
-            } else {
-                LeafNode<K,V> foundLeaf = (LeafNode<K,V>)l;
-                // try to DFlag grandparent
-                final DInfo<K,V> newGPInfo = new DInfo<K,V>(foundLeaf, p, gp, pinfo);
-
-                if (infoUpdater.compareAndSet(gp, gpinfo, newGPInfo)) {
-                    if (helpDelete(newGPInfo)) return foundLeaf.value;
+                if (!key.equals(l.key)) {
+                    if (!useFastPath) propagate(p);
+                    return null;
+                }else if (!(gpinfo == null || gpinfo.getClass() == Clean.class)) {
+                    help(gpinfo);
+                } else if (!(pinfo == null || pinfo.getClass() == Clean.class)) {
+                    help(pinfo);
                 } else {
-                    // if fails, help grandparent with its latest info value
-                    help(gp.info);
+                    LeafNode<K,V> foundLeaf = (LeafNode<K,V>)l;
+                    // try to DFlag grandparent
+                    final DInfo<K,V> newGPInfo = new DInfo<K,V>(foundLeaf, p, gp, pinfo);
+
+                    if (infoUpdater.compareAndSet(gp, gpinfo, newGPInfo)) {
+                        if (helpDelete(newGPInfo, useFastPath)) {
+                            // Update metadata based on path
+                            if (useFastPath) {
+                                fastUpdateMetadata(-1);  // Fast path: simple atomic decrement
+                            } else {
+                                propagate(gp);  // Slow path: full propagation
+                            }
+                            return foundLeaf.value;
+                        }
+                    } else {
+                        // if fails, help grandparent with its latest info value
+                        help(gp.info);
+                    }
                 }
             }
+        } finally {
+            // Return to idle phase
+            setOpPhaseIdle();
         }
     }
 
@@ -341,7 +463,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
 // - helpDelete
 //--------------------------------------------------------------------------------
 
-    private void helpInsert(final IInfo<K,V> info){
+    private void helpInsert(final IInfo<K,V> info, boolean useFastPath){
         boolean onLeft = (info.p.left == info.l);
         boolean spliced = onLeft
                 ? leftUpdater.compareAndSet(info.p, info.l, info.lReplacingNode)
@@ -350,20 +472,22 @@ public class MyBST<K extends Comparable<? super K>, V> {
         if (spliced) {
             // Fix parent of the new child
             info.lReplacingNode.parent = info.p;
-            // NEW: ensure snapshot is refreshed even if a helper did the splice
-            propagate(info.p);
+            // Only propagate if slow path
+            if (!useFastPath) {
+                propagate(info.p);
+            }
         }
         infoUpdater.compareAndSet(info.p, info, new Clean());
     }
 
-    private boolean helpDelete(final DInfo<K,V> info){
+    private boolean helpDelete(final DInfo<K,V> info, boolean useFastPath){
         final boolean result;
 
         result = infoUpdater.compareAndSet(info.p, info.pinfo, new Mark<K,V>(info));
         final Info<K,V> currentPInfo = info.p.info;
         if (result || (currentPInfo.getClass() == Mark.class && ((Mark<K,V>) currentPInfo).dinfo == info)) {
             // CAS succeeded or somebody else already helped
-            helpMarked(info);
+            helpMarked(info, useFastPath);
             return true;
         } else {
             help(currentPInfo);
@@ -373,12 +497,13 @@ public class MyBST<K extends Comparable<? super K>, V> {
     }
 
     private void help(final Info<K,V> info) {
-        if (info.getClass() == IInfo.class)     helpInsert((IInfo<K,V>) info);
-        else if(info.getClass() == DInfo.class) helpDelete((DInfo<K,V>) info);
-        else if(info.getClass() == Mark.class)  helpMarked(((Mark<K,V>)info).dinfo);
+        // When helping, use slow path to be conservative
+        if (info.getClass() == IInfo.class)     helpInsert((IInfo<K,V>) info, false);
+        else if(info.getClass() == DInfo.class) helpDelete((DInfo<K,V>) info, false);
+        else if(info.getClass() == Mark.class)  helpMarked(((Mark<K,V>)info).dinfo, false);
     }
 
-    private void helpMarked(final DInfo<K,V> info) {
+    private void helpMarked(final DInfo<K,V> info, boolean useFastPath) {
         final Node<K,V> other = (info.p.right == info.l) ? info.p.left : info.p.right;
         boolean pIsLeft = (info.gp.left == info.p);
         boolean swung = pIsLeft
@@ -388,8 +513,10 @@ public class MyBST<K extends Comparable<? super K>, V> {
         if (swung) {
             // Fix parent of the moved-up child
             other.parent = info.gp;
-            // Keep snapshot fresh when a helper completes the swing
-            propagate(info.gp);
+            // Only propagate if slow path
+            if (!useFastPath) {
+                propagate(info.gp);
+            }
         }
         infoUpdater.compareAndSet(info.gp, info, new Clean<>());
     }
@@ -417,7 +544,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
             vR = (xR instanceof InternalNode) ? ((InternalNode<E,T>) xR).version : ((LeafNode<E,T>) xR).version;
         } while (x.right != xR);
         int nb = vL.nbChild + vR.nbChild;
-        Version<E> newer = new Version<>(x.key, vL, vR, nb);
+        Version<E> newer = new Version<>(x.key, vL, vR, nb, x);  // Pass node reference
         return versionUpdater.compareAndSet(x, old, newer);
     }
 
@@ -434,6 +561,101 @@ public class MyBST<K extends Comparable<? super K>, V> {
         }
     }
 
+    //--------------------------------------------------------------------------------
+    // HANDSHAKE MECHANISM
+    //--------------------------------------------------------------------------------
+    
+    private void setOpPhaseIdle() {
+        int tid = threadID.get();
+        if (tid < MAX_THREADS) {
+            opPhase[tid].set(IDLE_PHASE);
+        }
+    }
+    
+    private void setOpPhaseVolatile(long phase) {
+        int tid = threadID.get();
+        if (tid < MAX_THREADS) {
+            // Update max thread ID if this is a new thread
+            long currentMax;
+            do {
+                currentMax = maxThreadID.get();
+                if (tid <= currentMax) break;
+            } while (!maxThreadID.compareAndSet(currentMax, tid));
+            
+            opPhase[tid].set(phase);
+        }
+    }
+    
+    private long getSizePhase() {
+        return sizePhase.get();
+    }
+    
+    private void performHandshake(long targetPhase) {
+        long startTime = System.nanoTime();
+        
+        // Only check threads that have been active (optimization)
+        int activeThreads = (int)maxThreadID.get() + 1;
+        if (activeThreads <= 0) return;  // No threads have started yet
+        
+        for (int tid = 0; tid < activeThreads; tid++) {
+            long phase;
+            while ((phase = opPhase[tid].get()) != IDLE_PHASE && phase < targetPhase) {
+                // Spin wait for thread to acknowledge handshake
+                Thread.onSpinWait();
+            }
+        }
+        
+        long elapsed = System.nanoTime() - startTime;
+        totalHandshakes.incrementAndGet();
+        totalHandshakeTimeNanos.addAndGet(elapsed);
+    }
+    
+    private long doFirstAndSecondHandshakes() {
+        // Wait until sizePhase % 4 == 0 (fast path mode)
+        long currSizePhase;
+        do {
+            currSizePhase = sizePhase.get();
+        } while (currSizePhase % 4 != 0);
+        
+        // First handshake: increment by 1
+        sizePhase.set(currSizePhase + 1);
+        performHandshake(currSizePhase + 1);
+        
+        // Second handshake: increment by 1 again
+        sizePhase.set(currSizePhase + 2);
+        performHandshake(currSizePhase + 2);
+        
+        return currSizePhase + 2;
+    }
+    
+    private long computeFastSize() {
+        // Only sum active threads (optimization)
+        int activeThreads = (int)maxThreadID.get() + 1;
+        if (activeThreads <= 0) return 0;
+        
+        long fastSize = 0;
+        for (int tid = 0; tid < activeThreads; tid++) {
+            fastSize += fastMetadataCounters[tid].get();
+        }
+        return fastSize;
+    }
+    
+    private void fastUpdateMetadata(int delta) {
+        int tid = threadID.get();
+        if (tid < MAX_THREADS) {
+            fastMetadataCounters[tid].addAndGet(delta);
+        }
+    }
+    
+    //--------------------------------------------------------------------------------
+    // FAST AND SLOW PATH OPERATIONS
+    //--------------------------------------------------------------------------------
+    
+    private boolean isSlowPathActive() {
+        long phase = getSizePhase();
+        return phase % 4 != 0;  // Not in fast path if phase % 4 != 0
+    }
+    
     /**
      *
      * DEBUG CODE (FOR TESTBED)
@@ -463,8 +685,36 @@ public class MyBST<K extends Comparable<? super K>, V> {
     }
 
     public int sizeSnapshot() {
+        totalSizeCalls.incrementAndGet();
+        
+        // Perform two handshakes
+        long currSizePhase = doFirstAndSecondHandshakes();
+        
+        // Compute fast path size (sum of per-thread counters)
+        long fastSize = computeFastSize();
+        
+        // Compute slow path size (from Version tree)
         Version<K> v = root.version;
-        return (v != null) ? v.nbChild : 0;
+        int slowSize = (v != null) ? v.nbChild : 0;
+        
+        // Signal completion: increment sizePhase by 2
+        sizePhase.set(currSizePhase + 2);
+        
+        // Return combined size
+        return (int)(fastSize + slowSize);
+    }
+    
+    // Get profiling statistics
+    public String getProfilingStats() {
+        long handshakes = totalHandshakes.get();
+        long totalTimeNanos = totalHandshakeTimeNanos.get();
+        long sizeCalls = totalSizeCalls.get();
+        
+        double avgHandshakeUs = handshakes > 0 ? (totalTimeNanos / (double)handshakes / 1000.0) : 0;
+        double handshakesPerSize = sizeCalls > 0 ? (handshakes / (double)sizeCalls) : 0;
+        
+        return String.format("Profiling: %d size calls, %d handshakes (%.1f per size), avg handshake time: %.2f μs",
+            sizeCalls, handshakes, handshakesPerSize, avgHandshakeUs);
     }
 
     public boolean containsKeySnapshot(K key) {
