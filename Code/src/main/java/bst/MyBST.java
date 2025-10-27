@@ -5,19 +5,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.Objects;
 
 public class MyBST<K extends Comparable<? super K>, V> {
-    //--------------------------------------------------------------------------------
-    // HANDSHAKE CONSTANTS AND FIELDS
-    //--------------------------------------------------------------------------------
+    
     private static final int IDLE_PHASE = -1;
     private static final int FAST_PHASE = -2;
-    private static final int MAX_THREADS = 256;  // Maximum number of threads
+    private static final int MAX_THREADS = 256;  
     
     private final AtomicLong sizePhase;  // Global phase counter for handshakes
     private final AtomicLong[] opPhase;  // Per-thread phase array
     private final AtomicLong[] fastMetadataCounters;  // Per-thread fast path size counters
-    private final AtomicLong maxThreadID;  // Track highest thread ID seen (for optimization)
+    private final AtomicLong maxThreadID;  // Track highest thread ID seen (opt)
     
-    // Debug/profiling counters
     public final AtomicLong totalHandshakes = new AtomicLong(0);
     public final AtomicLong totalHandshakeTimeNanos = new AtomicLong(0);
     public final AtomicLong totalSizeCalls = new AtomicLong(0);
@@ -50,7 +47,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
         final E key;
         final Version<E> left;
         final Version<E> right;
-        final int nbChild;    // slow path metadata: count of nodes in subtree
+        final int nbChild;    
         final Node<E,?> node; // reference back to node for accessing fast path metadata
 
         Version(E key, Version<E> left, Version<E> right, int nbChild, Node<E,?> node) {
