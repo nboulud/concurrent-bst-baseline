@@ -488,5 +488,42 @@ public class MyBSTBaseline<K extends Comparable<? super K>, V> {
         }
         return v.key;
     }
+
+    /**
+     * Rank query - returns 1-based position of key in sorted order.
+     * Returns -1 if key not found.
+     */
+    public int rank(K key) {
+        if (key == null) return -1;
+        
+        Version<K> v = root.version;
+        if (v == null) return -1;
+        
+        int rank = 0;
+        while (v.left != null) {
+            if (v.key == null || key.compareTo(v.key) < 0) {
+                // Go left
+                v = v.left;
+            } else {
+                // Go right - add left subtree size
+                rank += (v.left != null) ? v.left.nbChild : 0;
+                v = v.right;
+            }
+        }
+        
+        // Check if we found the key
+        if (v.key != null && key.compareTo(v.key) == 0) {
+            return rank + 1; // 1-based
+        }
+        return -1; // Key not found
+    }
+
+    /**
+     * Select query - returns kth smallest key (1-based).
+     * Returns null if k out of range.
+     */
+    public K select(int k) {
+        return selectKth(k);
+    }
 }
 

@@ -2,19 +2,38 @@ package bst;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.Objects;
 
-public class MyBST<K extends Comparable<? super K>, V> {
+/**
+ * MyBSTv2 - Optimized version with Per-Thread Reader State
+ * 
+ * KEY OPTIMIZATION: Replaces the shared AtomicLong activeReaders counter with
+ * a per-thread state array to eliminate contention on slow path entry/exit.
+ * 
+ * CHANGES FROM MyBST:
+ * 1. Replaced: AtomicLong activeReaders → AtomicLongArray readerState
+ * 2. Each thread sets/clears its own slot (no increment/decrement contention)
+ * 3. Scan O(T) only when exiting to check if last reader
+ * 4. Maintains 100% linearizability
+ */
+public class MyBSTv2<K extends Comparable<? super K>, V> {
     
     private static final int IDLE_PHASE = -1;
     private static final int FAST_PHASE = -2;
-    private static final int MAX_THREADS = 256;  
+    private static final int MAX_THREADS = 256;
+    
+    // Reader state constants
+    private static final long READER_IDLE = 0;
+    private static final long READER_ACTIVE = 1;
     
     private final AtomicLong sizePhase;  // Global phase counter for handshakes
     private final AtomicLong[] opPhase;  // Per-thread phase array
     private final AtomicLong[] fastMetadataCounters;  // Per-thread fast path size counters
     private final AtomicLong maxThreadID;  // Track highest thread ID seen (opt)
-    private final AtomicLong activeReaders;  // Count of active size queries in slow path
+    
+    // ★ OPTIMIZATION: Per-thread reader state instead of shared counter
+    private final AtomicLongArray readerState;  // [tid] → READER_IDLE or READER_ACTIVE
     
     public final AtomicLong totalHandshakes = new AtomicLong(0);
     public final AtomicLong totalHandshakeTimeNanos = new AtomicLong(0);
@@ -153,16 +172,20 @@ public class MyBST<K extends Comparable<? super K>, V> {
 
     final InternalNode<K,V> root;
 
-    public MyBST() {
+    public MyBSTv2() {
         // Initialize handshake infrastructure
         this.sizePhase = new AtomicLong(3);  // Start at 3 (divisible by 3 means fast path)
         this.opPhase = new AtomicLong[MAX_THREADS];
         this.fastMetadataCounters = new AtomicLong[MAX_THREADS];
         this.maxThreadID = new AtomicLong(-1);  // Track highest thread ID for optimization
-        this.activeReaders = new AtomicLong(0);  // No active readers initially
+        
+        // ★ OPTIMIZATION: Per-thread reader state instead of shared counter
+        this.readerState = new AtomicLongArray(MAX_THREADS);
+        
         for (int i = 0; i < MAX_THREADS; i++) {
             this.opPhase[i] = new AtomicLong(IDLE_PHASE);
             this.fastMetadataCounters[i] = new AtomicLong(0);
+            // readerState initialized to 0 (READER_IDLE) by default
         }
         
         // to avoid handling special case when <= 2 nodes,
@@ -617,9 +640,18 @@ public class MyBST<K extends Comparable<? super K>, V> {
         totalHandshakeTimeNanos.addAndGet(elapsed);
     }
     
+    /**
+     * ★ OPTIMIZED: Per-thread reader state tracking
+     * 
+     * Instead of incrementing a shared activeReaders counter (creates contention),
+     * each thread sets its own slot in the readerState array.
+     */
     private long enterSlowPath() {
-        // Increment reader count first
-        activeReaders.incrementAndGet();
+        int tid = threadID.get();
+        if (tid < MAX_THREADS) {
+            // ★ No contention: just set our own slot
+            readerState.set(tid, READER_ACTIVE);
+        }
         
         long currSizePhase = sizePhase.get();
         
@@ -656,6 +688,46 @@ public class MyBST<K extends Comparable<? super K>, V> {
                 currSizePhase = sizePhase.get();
             } while (currSizePhase % 3 != 2);
             return currSizePhase;
+        }
+    }
+    
+    /**
+     * ★ OPTIMIZED: Check if we're the last active reader
+     * 
+     * Scans the readerState array to see if any other thread is still reading.
+     * This is O(T) but only called on exit, and T is typically small (<100).
+     */
+    private boolean isLastReader() {
+        int activeThreads = (int)maxThreadID.get() + 1;
+        for (int i = 0; i < activeThreads; i++) {
+            if (readerState.get(i) == READER_ACTIVE) {
+                return false;  // At least one reader still active
+            }
+        }
+        return true;  // No active readers found
+    }
+    
+    /**
+     * ★ OPTIMIZED: Exit slow path with per-thread state
+     * 
+     * Clear our reader state, then check if we're the last reader.
+     * If so, transition back to fast path.
+     */
+    private void exitSlowPath() {
+        int tid = threadID.get();
+        if (tid < MAX_THREADS) {
+            // ★ No contention: just clear our own slot
+            readerState.set(tid, READER_IDLE);
+            
+            // Check if we're the last reader
+            if (isLastReader()) {
+                long currSizePhase = sizePhase.get();
+                // Only transition if still in slow path (phase % 3 == 2)
+                if (currSizePhase % 3 == 2) {
+                    // Increment by 1 to return to fast path (next phase % 3 == 0)
+                    sizePhase.set(currSizePhase + 1);
+                }
+            }
         }
     }
     
@@ -725,11 +797,14 @@ public class MyBST<K extends Comparable<? super K>, V> {
         return sizeStructural(i.left) + sizeStructural(i.right);
     }
 
+    /**
+     * ★ OPTIMIZED: Size query with per-thread reader tracking
+     */
     public int sizeSnapshot() {
         totalSizeCalls.incrementAndGet();
         
         try {
-            // Enter slow path (performs handshakes if needed, increments reader count)
+            // Enter slow path (performs handshakes if needed, sets reader state)
             enterSlowPath();
             
             // Compute fast path size (from root's fastSize)
@@ -742,18 +817,8 @@ public class MyBST<K extends Comparable<? super K>, V> {
             // Return combined size
             return (int)(fastSize + slowSize);
         } finally {
-            // Decrement reader count
-            long remainingReaders = activeReaders.decrementAndGet();
-            
-            // If we're the last reader to finish, transition back to fast path
-            if (remainingReaders == 0) {
-                long currSizePhase = sizePhase.get();
-                // Only transition if still in slow path (phase % 3 == 2)
-                if (currSizePhase % 3 == 2) {
-                    // Increment by 1 to return to fast path (next phase % 3 == 0)
-                    sizePhase.set(currSizePhase + 1);
-                }
-            }
+            // ★ Exit with optimized per-thread state tracking
+            exitSlowPath();
         }
     }
     
@@ -793,16 +858,11 @@ public class MyBST<K extends Comparable<? super K>, V> {
     }
 
     /**
-     * Rank query using fast path metadata (fastSize in nodes).
-     * Returns the rank (1-based position) of the given key in sorted order.
-     * Returns -1 if key is not found.
-     * 
-     * This uses fastSize from nodes + nbChild from Version tree for accurate results.
+     * ★ OPTIMIZED: Rank query with per-thread reader tracking
      */
     public int rank(K key) {
         if (key == null) return -1;
         
-        // Enter slow path to ensure consistency
         try {
             enterSlowPath();
             
@@ -844,28 +904,16 @@ public class MyBST<K extends Comparable<? super K>, V> {
             
             return -1; // Key not found
         } finally {
-            // Decrement reader count
-            long remainingReaders = activeReaders.decrementAndGet();
-            if (remainingReaders == 0) {
-                long currSizePhase = sizePhase.get();
-                if (currSizePhase % 3 == 2) {
-                    sizePhase.set(currSizePhase + 1);
-                }
-            }
+            exitSlowPath();
         }
     }
 
     /**
-     * Select query using fast path metadata (fastSize in nodes).
-     * Returns the kth smallest key (1-based indexing).
-     * Returns null if k is out of range.
-     * 
-     * This uses fastSize from nodes + nbChild from Version tree for accurate results.
+     * ★ OPTIMIZED: Select query with per-thread reader tracking
      */
     public K select(int k) {
         if (k <= 0) return null;
         
-        // Enter slow path to ensure consistency
         try {
             enterSlowPath();
             
@@ -910,14 +958,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
             
             return null; // Out of range
         } finally {
-            // Decrement reader count
-            long remainingReaders = activeReaders.decrementAndGet();
-            if (remainingReaders == 0) {
-                long currSizePhase = sizePhase.get();
-                if (currSizePhase % 3 == 2) {
-                    sizePhase.set(currSizePhase + 1);
-                }
-            }
+            exitSlowPath();
         }
     }
 }

@@ -1,6 +1,6 @@
 package bench;
 
-import bst.MyBST;
+import bst.MyBSTv2;
 import bst.MyBSTBaseline;
 import java.util.*;
 import java.util.concurrent.*;
@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Fair comparison with proper JVM warmup and randomized test order
+ * MODIFIED: Using MyBSTv2 (per-thread reader state optimization)
  */
 public class FairComparison {
 
@@ -27,7 +28,7 @@ public class FairComparison {
     }
 
     static class HandshakeWrapper implements BSTInterface {
-        private final MyBST<Integer,Integer> map = new MyBST<>();
+        private final MyBSTv2<Integer,Integer> map = new MyBSTv2<>();
         public void insert(int k) { map.put(k, k); }
         public void delete(int k) { map.remove(k); }
         public Integer get(int k) { return map.get(k); }

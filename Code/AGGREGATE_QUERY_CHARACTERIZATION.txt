@@ -8,7 +8,6 @@ Based on the paper "Concurrent Aggregate Queries on Augmented Trees"
 1. AGGREGATE FUNCTION PROPERTIES
 ================================================================================
 
-Function: size (also called count)
 
 Type: BOTH Additive AND Subtractive
 
@@ -30,16 +29,10 @@ Update Operations (Properties 3 & 6):
   - On INSERT: newValue = oldValue + size({(key,value)}) = oldValue + 1
   - On DELETE: newValue = oldValue - size({(key,value)}) = oldValue - 1
 
-Examples (from paper):
-  - size is subtractive ✓
-  - sum is subtractive ✓
-  - product is subtractive ✓
-  - min is NOT subtractive ✗ (no inverse operation)
-  - max is NOT subtractive ✗ (no inverse operation)
 
 
 ================================================================================
-2. AGGREGATE QUERY TYPE
+2. AGGREGATE QUERY TYPE 
 ================================================================================
 
 Query Type: Simple Aggregate Query
@@ -55,50 +48,9 @@ Traversal Template (modified for our implementation):
   - Handshake: combines fast metadata + tree metadata
 
 
-================================================================================
-3. IMPLEMENTATION DETAILS (Handshake Approach)
-================================================================================
-
-3.1 Metadata Organization
-
-Unlike the paper's standard approach, we use HYBRID METADATA:
-
-Traditional (Paper's Approach):
-  - Single metadata per node
-  - Stored in tree nodes only
-  - Always consistent
-  - Updated via propagate() on every update
-
-Handshake Approach (Our Implementation):
-  - HYBRID: Two types of metadata
-    1. Fast path: Per-thread atomic counters (fastMetadataCounters[])
-    2. Slow path: Tree node metadata (Version.nbChild)
-  - Combined at query time via handshake protocol
-
-3.2 Query Mechanism
-
-sizeSnapshot() implementation:
-  
-  Step 1: Coordinate transition (Two-handshake protocol)
-    - First handshake: Wait for fast path operations to complete
-    - Second handshake: Ensure all threads in slow path
-    - Result: Consistent view of data structure
-
-  Step 2: Collect fast path metadata
-    fastSize = Σ fastMetadataCounters[i] for i in [0, maxThreadID]
-
-  Step 3: Collect slow path metadata
-    slowSize = root.version.nbChild
-
-  Step 4: Combine using additive property
-    totalSize = fastSize ⊕size slowSize = fastSize + slowSize
-
-  Step 5: Signal completion
-    sizePhase = sizePhase + 2 (return to fast path)
-
 
 ================================================================================
-4. COMPARISON: Paper's Template vs Our Handshake Implementation
+3. COMPARISON: Paper's Template vs Our Handshake Implementation
 ================================================================================
 
 | Aspect                  | Paper's Standard         | Our Handshake           |
@@ -114,8 +66,9 @@ sizeSnapshot() implementation:
 | Additivity Property     | Used in nodes            | Used to combine paths   |
 
 
+
 ================================================================================
-5. WHY OUR APPROACH SATISFIES ADDITIVE AGGREGATE FUNCTION REQUIREMENTS
+4. WHY OUR APPROACH SATISFIES ADDITIVE AGGREGATE FUNCTION REQUIREMENTS
 ================================================================================
 
 Key Insight: The additive property of size allows us to combine fast and slow metadata:
@@ -142,8 +95,9 @@ Why This Works:
   ✓ Handshake ensures they represent disjoint time periods
 
 
+
 ================================================================================
-6. DISTINGUISHING FEATURES
+5. DISTINGUISHING FEATURES
 ================================================================================
 
 What Makes Our Implementation Unique:
@@ -169,8 +123,9 @@ What Makes Our Implementation Unique:
    - Also for cross-metadata-type aggregation
 
 
+
 ================================================================================
-7. FORMAL CHARACTERIZATION
+6. FORMAL CHARACTERIZATION
 ================================================================================
 
 Aggregate Function:

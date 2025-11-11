@@ -1,0 +1,81 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║              OPERATION-SPECIFIC PERFORMANCE BENCHMARK                     ║
+║        (Dedicated threads for each operation type per workload)          ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+Configuration:
+  • Each thread performs ONLY ONE operation type
+  • Preloaded size: 50,000 keys
+  • Duration: 10 seconds per test
+
+Workload Configurations:
+  Workload 1 (100 threads): size:10, rank:10, select:10, insert:10, delete:10, get:50
+  Workload 2 (100 threads): size:6, rank:7, select:7, insert:10, delete:10, get:60
+  Workload 3 (100 threads): size:3, rank:3, select:4, insert:10, delete:10, get:70
+  Workload 4 (96 threads): size:16, rank:17, select:17, insert:10, delete:10, get:26
+
+═══════════════════════════════════════════════════════════════════════════
+WARMUP PHASE
+═══════════════════════════════════════════════════════════════════════════
+Warmup 1/2... done
+Warmup 2/2... done
+
+✓ Warmup complete
+
+═══════════════════════════════════════════════════════════════════════════
+RUNNING TESTS
+═══════════════════════════════════════════════════════════════════════════
+
+─────────────────────────────────────────────────────────────────────────
+Workload 1 (100 threads): size:10, rank:10, select:10, insert:10, delete:10, get:50
+─────────────────────────────────────────────────────────────────────────
+  MyBSTBaseline (eager propagation)... ✓ 193,434,991 total ops/sec
+    Size: 193,324,943 | Rank: 16,965 | Select: 36,814 | Insert: 308 | Delete: 625 | Get: 55,333
+  MyBST (handshake + fast path)... ✓ 5,480,061 total ops/sec (0.03x speedup)
+    Size: 5,362,068 | Rank: 11,547 | Select: 21,554 | Insert: 344 | Delete: 624 | Get: 83,922
+
+─────────────────────────────────────────────────────────────────────────
+Workload 2 (100 threads): size:6, rank:7, select:7, insert:10, delete:10, get:60
+─────────────────────────────────────────────────────────────────────────
+  MyBSTBaseline (eager propagation)... ✓ 120,383,764 total ops/sec
+    Size: 120,300,978 | Rank: 12,026 | Select: 29,569 | Insert: 265 | Delete: 533 | Get: 40,390
+  MyBST (handshake + fast path)... ✓ 6,064,213 total ops/sec (0.05x speedup)
+    Size: 5,927,523 | Rank: 8,635 | Select: 16,696 | Insert: 378 | Delete: 665 | Get: 110,314
+
+─────────────────────────────────────────────────────────────────────────
+Workload 3 (100 threads): size:3, rank:3, select:4, insert:10, delete:10, get:70
+─────────────────────────────────────────────────────────────────────────
+  MyBSTBaseline (eager propagation)... ✓ 55,492,649 total ops/sec
+    Size: 55,426,438 | Rank: 3,390 | Select: 11,092 | Insert: 253 | Delete: 498 | Get: 50,976
+  MyBST (handshake + fast path)... ✓ 4,865,880 total ops/sec (0.09x speedup)
+    Size: 4,764,155 | Rank: 2,747 | Select: 7,383 | Insert: 350 | Delete: 548 | Get: 90,695
+
+─────────────────────────────────────────────────────────────────────────
+Workload 4 (96 threads): size:16, rank:17, select:17, insert:10, delete:10, get:26
+─────────────────────────────────────────────────────────────────────────
+  MyBSTBaseline (eager propagation)... ✓ 306,823,648 total ops/sec
+    Size: 306,717,380 | Rank: 27,729 | Select: 64,274 | Insert: 214 | Delete: 443 | Get: 13,606
+  MyBST (handshake + fast path)... ✓ 5,132,303 total ops/sec (0.02x speedup)
+    Size: 5,037,982 | Rank: 18,000 | Select: 37,098 | Insert: 348 | Delete: 604 | Get: 38,268
+
+═══════════════════════════════════════════════════════════════════════════
+SUMMARY: Speedup Analysis
+═══════════════════════════════════════════════════════════════════════════
+Workload        | Overall    | Size       | Rank       | Select     | Insert     | Delete     | Get       
+───────────────────────────────────────────────────────────────────────────
+Workload 1      | 0.03x      | 0.03x     | 0.68x     | 0.59x       | 1.11x      | 1.00x      | 1.52x
+Workload 2      | 0.05x      | 0.05x     | 0.72x     | 0.56x       | 1.43x      | 1.25x      | 2.73x
+Workload 3      | 0.09x      | 0.09x     | 0.81x     | 0.67x       | 1.38x      | 1.10x      | 1.78x
+Workload 4      | 0.02x      | 0.02x     | 0.65x     | 0.58x       | 1.62x      | 1.36x      | 2.81x
+
+═══════════════════════════════════════════════════════════════════════════
+KEY INSIGHTS:
+  • Size:   0.04x average speedup - SLOWER
+  • Rank:   0.71x average speedup - SLOWER
+  • Select: 0.60x average speedup - SLOWER
+  • Insert: 1.39x average speedup - GOOD IMPROVEMENT
+  • Delete: 1.18x average speedup - MODERATE IMPROVEMENT
+  • Get:    2.21x average speedup - SIGNIFICANT IMPROVEMENT
+═══════════════════════════════════════════════════════════════════════════
+
+Mixed workload benchmark complete!

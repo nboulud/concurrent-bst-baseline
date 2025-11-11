@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.Objects;
 
-public class MyBST<K extends Comparable<? super K>, V> {
+public class MyBSTprev<K extends Comparable<? super K>, V> {
     
     private static final int IDLE_PHASE = -1;
     private static final int FAST_PHASE = -2;
@@ -14,7 +14,6 @@ public class MyBST<K extends Comparable<? super K>, V> {
     private final AtomicLong[] opPhase;  // Per-thread phase array
     private final AtomicLong[] fastMetadataCounters;  // Per-thread fast path size counters
     private final AtomicLong maxThreadID;  // Track highest thread ID seen (opt)
-    private final AtomicLong activeReaders;  // Count of active size queries in slow path
     
     public final AtomicLong totalHandshakes = new AtomicLong(0);
     public final AtomicLong totalHandshakeTimeNanos = new AtomicLong(0);
@@ -63,13 +62,10 @@ public class MyBST<K extends Comparable<? super K>, V> {
     protected final static class LeafNode<E extends Comparable<? super E>, V> extends Node<E,V> {
         final V value;
         volatile Version<E> version;
-        final AtomicLong fastSize;  // Fast path metadata for size
 
         LeafNode(final E key, final V value) {
             super(key);
             this.value = value;
-            // Start with fastSize=1 if key is not null (real element), 0 for sentinel
-            this.fastSize = new AtomicLong((key != null) ? 1 : 0);
             // Start with nbChild=0; will be updated via propagate() in slow path only
             this.version = new Version<>(key, null, null, 0, this);
         }
@@ -93,12 +89,8 @@ public class MyBST<K extends Comparable<? super K>, V> {
             if (right != null)  right.parent = this;
             Version<E> vL = left.version;
             Version<E> vR = right.version;
-            // Initialize fastSize from children's fastSize
-            long initialFastSize = 0;
-            if (left != null) initialFastSize += left.fastSize.get();
-            if (right != null) initialFastSize += right.fastSize.get();
-            this.fastSize = new AtomicLong(initialFastSize);
             // Version tree starts at 0, only updated via propagate() (slow path)
+            this.fastSize = new AtomicLong(0);  // Not currently used
             this.version = new Version<>(key, vL, vR, 0, this);
         }
     }
@@ -153,13 +145,12 @@ public class MyBST<K extends Comparable<? super K>, V> {
 
     final InternalNode<K,V> root;
 
-    public MyBST() {
+    public MyBSTprev() {
         // Initialize handshake infrastructure
-        this.sizePhase = new AtomicLong(3);  // Start at 3 (divisible by 3 means fast path)
+        this.sizePhase = new AtomicLong(4);  // Start at 4 (divisible by 4 means fast path)
         this.opPhase = new AtomicLong[MAX_THREADS];
         this.fastMetadataCounters = new AtomicLong[MAX_THREADS];
         this.maxThreadID = new AtomicLong(-1);  // Track highest thread ID for optimization
-        this.activeReaders = new AtomicLong(0);  // No active readers initially
         for (int i = 0; i < MAX_THREADS; i++) {
             this.opPhase[i] = new AtomicLong(IDLE_PHASE);
             this.fastMetadataCounters[i] = new AtomicLong(0);
@@ -201,7 +192,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
         
         // Announce we're starting an operation
         long phase = getSizePhase();
-        boolean useFastPath = (phase % 3 == 0);
+        boolean useFastPath = (phase % 4 == 0);
         setOpPhaseVolatile(useFastPath ? FAST_PHASE : phase);
         
         try {
@@ -219,7 +210,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
             while (true) {
                 // Re-check phase on every retry to respond quickly to handshakes
                 long newPhase = getSizePhase();
-                boolean newFastPath = (newPhase % 3 == 0);
+                boolean newFastPath = (newPhase % 4 == 0);
                 if (newFastPath != useFastPath) {
                     useFastPath = newFastPath;
                     setOpPhaseVolatile(useFastPath ? FAST_PHASE : newPhase);
@@ -240,7 +231,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
                 LeafNode<K,V> foundLeaf = (LeafNode<K,V>)l;
 
                 if (key.equals(foundLeaf.key)) {
-                    propagate(p);  // Always update version tree for snapshot queries
+                    if (!useFastPath) propagate(p);
                     return foundLeaf.value; // key already in the tree, no duplicate allowed
                 } else if (!(pinfo == null || pinfo.getClass() == Clean.class)) {
                     help(pinfo);
@@ -262,7 +253,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
                         
                         // Update metadata - successful insert
                         if (useFastPath) {
-                            fastUpdateMetadata(1, p);  // Fast path: update from parent up to root
+                            fastUpdateMetadata(1);  // Fast path: simple atomic increment
                         } else {
                             propagate(p);  // Slow path: full propagation
                         }
@@ -290,7 +281,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
         
         // Announce we're starting an operation
         long phase = getSizePhase();
-        boolean useFastPath = (phase % 3 == 0);
+        boolean useFastPath = (phase % 4 == 0);
         setOpPhaseVolatile(useFastPath ? FAST_PHASE : phase);
         
         try {
@@ -309,7 +300,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
             while (true) {
                 // Re-check phase on every retry to respond quickly to handshakes
                 long newPhase = getSizePhase();
-                boolean newFastPath = (newPhase % 3 == 0);
+                boolean newFastPath = (newPhase % 4 == 0);
                 if (newFastPath != useFastPath) {
                     useFastPath = newFastPath;
                     setOpPhaseVolatile(useFastPath ? FAST_PHASE : newPhase);
@@ -357,10 +348,9 @@ public class MyBST<K extends Comparable<? super K>, V> {
                         helpInsert(newPInfo, useFastPath);
                         
                         // Update metadata based on path
-                        if (result == null) {  // Successful insert (newInternal was created)
+                        if (result == null) {  // Successful insert
                             if (useFastPath) {
-                                // Start from parent since we just added newInternal below it
-                                fastUpdateMetadata(1, p);  // Fast path: update from parent up to root
+                                fastUpdateMetadata(1);  // Fast path: simple atomic increment
                             } else {
                                 propagate(p);  // Slow path: full propagation
                             }
@@ -387,7 +377,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
         
         // Announce we're starting an operation
         long phase = getSizePhase();
-        boolean useFastPath = (phase % 3 == 0);
+        boolean useFastPath = (phase % 4 == 0);
         setOpPhaseVolatile(useFastPath ? FAST_PHASE : phase);
         
         try {
@@ -402,7 +392,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
             while (true) {
                 // Re-check phase on every retry to respond quickly to handshakes
                 long newPhase = getSizePhase();
-                boolean newFastPath = (newPhase % 3 == 0);
+                boolean newFastPath = (newPhase % 4 == 0);
                 if (newFastPath != useFastPath) {
                     useFastPath = newFastPath;
                     setOpPhaseVolatile(useFastPath ? FAST_PHASE : newPhase);
@@ -446,7 +436,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
                         if (helpDelete(newGPInfo, useFastPath)) {
                             // Update metadata based on path
                             if (useFastPath) {
-                                fastUpdateMetadata(-1, gp);  // Fast path: update from gp up to root
+                                fastUpdateMetadata(-1);  // Fast path: simple atomic decrement
                             } else {
                                 propagate(gp);  // Slow path: full propagation
                             }
@@ -617,46 +607,22 @@ public class MyBST<K extends Comparable<? super K>, V> {
         totalHandshakeTimeNanos.addAndGet(elapsed);
     }
     
-    private long enterSlowPath() {
-        // Increment reader count first
-        activeReaders.incrementAndGet();
-        
-        long currSizePhase = sizePhase.get();
-        
-        // If already in slow path (phase % 3 == 2), no need for handshakes
-        if (currSizePhase % 3 == 2) {
-            return currSizePhase;
-        }
-        
-        // Otherwise, we need to transition from fast path to slow path
-        // Wait until we're in fast path mode (phase % 3 == 0)
-        while (currSizePhase % 3 != 0) {
+    private long doFirstAndSecondHandshakes() {
+        // Wait until sizePhase % 4 == 0 (fast path mode)
+        long currSizePhase;
+        do {
             currSizePhase = sizePhase.get();
-            // If another thread already moved to slow path while we were waiting, use it
-            if (currSizePhase % 3 == 2) {
-                return currSizePhase;
-            }
-        }
+        } while (currSizePhase % 4 != 0);
         
-        // Try to be the thread that performs the transition
-        // Use CAS to avoid multiple threads doing handshakes simultaneously
-        if (sizePhase.compareAndSet(currSizePhase, currSizePhase + 1)) {
-            // We won the race, perform the handshakes
-            // First handshake: switching phase (currSizePhase + 1)
-            performHandshake(currSizePhase + 1);
-            
-            // Second handshake: move to slow path (currSizePhase + 2)
-            sizePhase.set(currSizePhase + 2);
-            performHandshake(currSizePhase + 2);
-            
-            return currSizePhase + 2;
-        } else {
-            // Another thread is doing the transition, wait for slow path
-            do {
-                currSizePhase = sizePhase.get();
-            } while (currSizePhase % 3 != 2);
-            return currSizePhase;
-        }
+        // First handshake: increment by 1
+        sizePhase.set(currSizePhase + 1);
+        performHandshake(currSizePhase + 1);
+        
+        // Second handshake: increment by 1 again
+        sizePhase.set(currSizePhase + 2);
+        performHandshake(currSizePhase + 2);
+        
+        return currSizePhase + 2;
     }
     
     private long computeFastSize() {
@@ -671,20 +637,10 @@ public class MyBST<K extends Comparable<? super K>, V> {
         return fastSize;
     }
     
-    /**
-     * Update fastSize along the path from the given node to the root.
-     * This is used in fast path to maintain size information in each node.
-     * No CAS needed since there are no concurrent reads in fast path.
-     */
-    private void fastUpdateMetadata(int delta, Node<K,V> startNode) {
-        Node<K,V> current = startNode;
-        while (current != null) {
-            if (current instanceof InternalNode) {
-                ((InternalNode<K,V>) current).fastSize.addAndGet(delta);
-            } else if (current instanceof LeafNode) {
-                // Leaf nodes don't need updates - their fastSize is fixed at creation
-            }
-            current = current.parent;
+    private void fastUpdateMetadata(int delta) {
+        int tid = threadID.get();
+        if (tid < MAX_THREADS) {
+            fastMetadataCounters[tid].addAndGet(delta);
         }
     }
     
@@ -694,7 +650,7 @@ public class MyBST<K extends Comparable<? super K>, V> {
     
     private boolean isSlowPathActive() {
         long phase = getSizePhase();
-        return phase % 3 != 0;  // Not in fast path if phase % 3 != 0
+        return phase % 4 != 0;  // Not in fast path if phase % 4 != 0
     }
     
     /**
@@ -728,33 +684,21 @@ public class MyBST<K extends Comparable<? super K>, V> {
     public int sizeSnapshot() {
         totalSizeCalls.incrementAndGet();
         
-        try {
-            // Enter slow path (performs handshakes if needed, increments reader count)
-            enterSlowPath();
-            
-            // Compute fast path size (from root's fastSize)
-            long fastSize = root.fastSize.get();
-            
-            // Compute slow path size (from Version tree)
-            Version<K> v = root.version;
-            int slowSize = (v != null) ? v.nbChild : 0;
-            
-            // Return combined size
-            return (int)(fastSize + slowSize);
-        } finally {
-            // Decrement reader count
-            long remainingReaders = activeReaders.decrementAndGet();
-            
-            // If we're the last reader to finish, transition back to fast path
-            if (remainingReaders == 0) {
-                long currSizePhase = sizePhase.get();
-                // Only transition if still in slow path (phase % 3 == 2)
-                if (currSizePhase % 3 == 2) {
-                    // Increment by 1 to return to fast path (next phase % 3 == 0)
-                    sizePhase.set(currSizePhase + 1);
-                }
-            }
-        }
+        // Perform two handshakes
+        long currSizePhase = doFirstAndSecondHandshakes();
+        
+        // Compute fast path size (sum of per-thread counters)
+        long fastSize = computeFastSize();
+        
+        // Compute slow path size (from Version tree)
+        Version<K> v = root.version;
+        int slowSize = (v != null) ? v.nbChild : 0;
+        
+        // Signal completion: increment sizePhase by 2
+        sizePhase.set(currSizePhase + 2);
+        
+        // Return combined size
+        return (int)(fastSize + slowSize);
     }
     
     // Get profiling statistics
@@ -790,134 +734,5 @@ public class MyBST<K extends Comparable<? super K>, V> {
             else { j -= leftSize; v = v.right; }
         }
         return v.key;
-    }
-
-    /**
-     * Rank query using fast path metadata (fastSize in nodes).
-     * Returns the rank (1-based position) of the given key in sorted order.
-     * Returns -1 if key is not found.
-     * 
-     * This uses fastSize from nodes + nbChild from Version tree for accurate results.
-     */
-    public int rank(K key) {
-        if (key == null) return -1;
-        
-        // Enter slow path to ensure consistency
-        try {
-            enterSlowPath();
-            
-            Node<K,V> current = root.left;
-            int rank = 0;
-            
-            while (current != null) {
-                if (current instanceof LeafNode) {
-                    LeafNode<K,V> leaf = (LeafNode<K,V>) current;
-                    if (leaf.key != null && key.compareTo(leaf.key) == 0) {
-                        return rank + 1; // 1-based rank
-                    }
-                    return -1; // Key not found
-                }
-                
-                InternalNode<K,V> node = (InternalNode<K,V>) current;
-                
-                if (node.key == null || key.compareTo(node.key) < 0) {
-                    // Go left
-                    current = node.left;
-                } else {
-                    // Go right - add left subtree size to rank
-                    if (node.left instanceof InternalNode) {
-                        InternalNode<K,V> leftInternal = (InternalNode<K,V>) node.left;
-                        // Use combined size: fastSize + version tree size
-                        rank += leftInternal.fastSize.get();
-                        if (leftInternal.version != null) {
-                            rank += leftInternal.version.nbChild;
-                        }
-                    } else if (node.left instanceof LeafNode) {
-                        LeafNode<K,V> leftLeaf = (LeafNode<K,V>) node.left;
-                        if (leftLeaf.key != null) {
-                            rank += 1; // Leaf counts as 1 if has real key
-                        }
-                    }
-                    current = node.right;
-                }
-            }
-            
-            return -1; // Key not found
-        } finally {
-            // Decrement reader count
-            long remainingReaders = activeReaders.decrementAndGet();
-            if (remainingReaders == 0) {
-                long currSizePhase = sizePhase.get();
-                if (currSizePhase % 3 == 2) {
-                    sizePhase.set(currSizePhase + 1);
-                }
-            }
-        }
-    }
-
-    /**
-     * Select query using fast path metadata (fastSize in nodes).
-     * Returns the kth smallest key (1-based indexing).
-     * Returns null if k is out of range.
-     * 
-     * This uses fastSize from nodes + nbChild from Version tree for accurate results.
-     */
-    public K select(int k) {
-        if (k <= 0) return null;
-        
-        // Enter slow path to ensure consistency
-        try {
-            enterSlowPath();
-            
-            Node<K,V> current = root.left;
-            int remaining = k;
-            
-            while (current != null) {
-                if (current instanceof LeafNode) {
-                    LeafNode<K,V> leaf = (LeafNode<K,V>) current;
-                    if (leaf.key != null && remaining == 1) {
-                        return leaf.key;
-                    }
-                    return null; // Out of range
-                }
-                
-                InternalNode<K,V> node = (InternalNode<K,V>) current;
-                
-                // Calculate left subtree size (fastSize + version tree)
-                int leftSize = 0;
-                if (node.left instanceof InternalNode) {
-                    InternalNode<K,V> leftInternal = (InternalNode<K,V>) node.left;
-                    leftSize += leftInternal.fastSize.get();
-                    if (leftInternal.version != null) {
-                        leftSize += leftInternal.version.nbChild;
-                    }
-                } else if (node.left instanceof LeafNode) {
-                    LeafNode<K,V> leftLeaf = (LeafNode<K,V>) node.left;
-                    if (leftLeaf.key != null) {
-                        leftSize = 1;
-                    }
-                }
-                
-                if (remaining <= leftSize) {
-                    // Target is in left subtree
-                    current = node.left;
-                } else {
-                    // Target is in right subtree
-                    remaining -= leftSize;
-                    current = node.right;
-                }
-            }
-            
-            return null; // Out of range
-        } finally {
-            // Decrement reader count
-            long remainingReaders = activeReaders.decrementAndGet();
-            if (remainingReaders == 0) {
-                long currSizePhase = sizePhase.get();
-                if (currSizePhase % 3 == 2) {
-                    sizePhase.set(currSizePhase + 1);
-                }
-            }
-        }
     }
 }

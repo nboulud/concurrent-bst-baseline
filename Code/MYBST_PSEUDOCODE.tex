@@ -1,0 +1,367 @@
+\documentclass{article}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\begin{document}
+
+\section*{MyBST: Handshake-Based Concurrent BST with Embedded Metadata}
+
+\subsection*{Data Structures}
+
+\begin{algorithm}[H]
+\caption{Node Structures and Global State}
+\begin{algorithmic}[1]
+\State \textbf{Shared Variables:}
+\State $\quad$ \textsc{root}: InternalNode \Comment{Root of BST}
+\State $\quad$ \textsc{sizePhase}: AtomicLong \Comment{Global phase counter, $\equiv 0 \pmod{3}$ means fast path}
+\State $\quad$ \textsc{opPhase}[MAX\_THREADS]: AtomicLong array \Comment{Per-thread phase tracking}
+\State $\quad$ \textsc{activeReaders}: AtomicLong \Comment{Count of threads in aggregate queries}
+\State
+\State \textbf{Node Structure:}
+\State $\quad$ Each node has:
+\State $\quad\quad$ \textsc{key}: K \Comment{Node key}
+\State $\quad\quad$ \textsc{parent}: reference to parent
+\State $\quad\quad$ \textsc{fastSize}: AtomicLong \Comment{Embedded metadata for fast path}
+\State $\quad\quad$ \textsc{version}: Version tree node \Comment{For slow path queries}
+\State
+\State \textbf{Version Tree Node:}
+\State $\quad$ \textsc{left}, \textsc{right}: Version \Comment{Immutable snapshot structure}
+\State $\quad$ \textsc{nbChild}: int \Comment{Subtree size (slow path only)}
+\State $\quad$ \textsc{node}: reference back to BST node \Comment{For accessing fastSize}
+\State
+\State \textbf{Constants:}
+\State $\quad$ IDLE\_PHASE $= -1$ \Comment{Thread not in an operation}
+\State $\quad$ FAST\_PHASE $= -2$ \Comment{Thread in fast path operation}
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Core Update Operations}
+
+\begin{algorithm}[H]
+\caption{Insert(key, value)}
+\begin{algorithmic}[1]
+\State $tid \gets$ ThreadID.get()
+\State $useFastPath \gets$ (sizePhase $\bmod 3 = 0$)
+\State opPhase[$tid$] $\gets$ (useFastPath ? FAST\_PHASE : sizePhase)
+\State
+\While{true}
+    \State \Comment{Re-check phase on every retry for handshake responsiveness}
+    \State $newPhase \gets$ sizePhase
+    \State $newFastPath \gets$ ($newPhase \bmod 3 = 0$)
+    \If{$newFastPath \neq useFastPath$}
+        \State $useFastPath \gets newFastPath$
+        \State opPhase[$tid$] $\gets$ (useFastPath ? FAST\_PHASE : newPhase)
+    \EndIf
+    \State
+    \State \Comment{Search for insertion point}
+    \State $(gp, p, l) \gets$ \Call{Search}{key}
+    \State
+    \If{$l.key = key$}
+        \If{!$useFastPath$} \Call{Propagate}{$p$} \EndIf
+        \State \Return existing value \Comment{Key already exists}
+    \EndIf
+    \State
+    \State \Comment{Create new internal node and leaf}
+    \State $newLeaf \gets$ new LeafNode(key, value)
+    \State $newLeaf.fastSize \gets 1$ \Comment{Initialize embedded metadata}
+    \State $sibling \gets$ l
+    \State $newInternal \gets$ new InternalNode(max(key, $l.key$), smaller, larger)
+    \State
+    \State \Comment{Initialize fastSize for new internal node}
+    \State $newInternal.fastSize \gets newLeaf.fastSize + sibling.fastSize$
+    \State
+    \If{\Call{CAS}{$p$.child, $l$, $newInternal$}}
+        \State $newInternal.parent \gets p$
+        \State
+        \If{$useFastPath$}
+            \State \Call{FastUpdateMetadata}{+1, $p$} \Comment{Update fastSize from p to root}
+        \Else
+            \State \Call{Propagate}{$p$} \Comment{Update Version tree}
+        \EndIf
+        \State \Return null \Comment{Successful insertion}
+    \EndIf
+\EndWhile
+\State
+\State opPhase[$tid$] $\gets$ IDLE\_PHASE
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Delete(key)}
+\begin{algorithmic}[1]
+\State $tid \gets$ ThreadID.get()
+\State $useFastPath \gets$ (sizePhase $\bmod 3 = 0$)
+\State opPhase[$tid$] $\gets$ (useFastPath ? FAST\_PHASE : sizePhase)
+\State
+\While{true}
+    \State $newPhase \gets$ sizePhase
+    \State $newFastPath \gets$ ($newPhase \bmod 3 = 0$)
+    \If{$newFastPath \neq useFastPath$}
+        \State $useFastPath \gets newFastPath$
+        \State opPhase[$tid$] $\gets$ (useFastPath ? FAST\_PHASE : newPhase)
+    \EndIf
+    \State
+    \State $(gp, p, l) \gets$ \Call{Search}{key}
+    \State
+    \If{$l.key \neq key$}
+        \If{!$useFastPath$} \Call{Propagate}{$p$} \EndIf
+        \State \Return null \Comment{Key not found}
+    \EndIf
+    \State
+    \State \Comment{Flag parent for deletion}
+    \If{\Call{CAS}{$gp$.info, clean, DInfo($l, p, gp$)}}
+        \If{\Call{HelpDelete}{DInfo, $useFastPath$}}
+            \If{$useFastPath$}
+                \State \Call{FastUpdateMetadata}{-1, $gp$} \Comment{Update from gp to root}
+            \Else
+                \State \Call{Propagate}{$gp$} \Comment{Update Version tree}
+            \EndIf
+            \State \Return $l$.value
+        \EndIf
+    \EndIf
+\EndWhile
+\State
+\State opPhase[$tid$] $\gets$ IDLE\_PHASE
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Fast Path Metadata Update}
+
+\begin{algorithm}[H]
+\caption{FastUpdateMetadata(delta, startNode)}
+\begin{algorithmic}[1]
+\State \Comment{Update fastSize along path from startNode to root}
+\State \Comment{Used in fast path when no concurrent aggregate queries}
+\State $current \gets startNode$
+\While{$current \neq$ null}
+    \If{$current$ is InternalNode}
+        \State $current.fastSize \gets current.fastSize + delta$
+    \EndIf
+    \State $current \gets current.parent$
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Slow Path Metadata Update (Propagate)}
+
+\begin{algorithm}[H]
+\caption{Propagate(node)}
+\begin{algorithmic}[1]
+\State \Comment{Rebuild Version tree from node to root}
+\State \Comment{Used in slow path when aggregate queries may be active}
+\State $current \gets node$
+\While{$current \neq$ null}
+    \If{$current$ is InternalNode}
+        \State $leftVer \gets current.left.version$
+        \State $rightVer \gets current.right.version$
+        \State $leftSize \gets$ ($leftVer \neq$ null ? $leftVer.nbChild$ : 0)
+        \State $rightSize \gets$ ($rightVer \neq$ null ? $rightVer.nbChild$ : 0)
+        \State
+        \State $newVer \gets$ new Version($current.key$, $leftVer$, $rightVer$, $leftSize + rightSize$, $current$)
+        \State
+        \If{\Call{CAS}{$current.version$, old, $newVer$}}
+            \State $current \gets current.parent$ \Comment{Continue up the tree}
+        \Else
+            \State \Call{Refresh}{$current$} \Comment{Help concurrent update}
+        \EndIf
+    \Else
+        \State break \Comment{Reached leaf}
+    \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Handshake Mechanism}
+
+\begin{algorithm}[H]
+\caption{EnterSlowPath()}
+\begin{algorithmic}[1]
+\State \Comment{Transition from fast path to slow path using double handshake}
+\State activeReaders.increment() \Comment{Register as active reader}
+\State
+\State $currPhase \gets$ sizePhase
+\If{$currPhase \bmod 3 = 2$} \Comment{Already in slow path}
+    \State \Return $currPhase$
+\EndIf
+\State
+\State \Comment{Wait for fast path mode}
+\While{$currPhase \bmod 3 \neq 0$}
+    \State $currPhase \gets$ sizePhase
+    \If{$currPhase \bmod 3 = 2$} \Return $currPhase$ \EndIf
+\EndWhile
+\State
+\State \Comment{Try to perform transition (double handshake)}
+\If{\Call{CAS}{sizePhase, $currPhase$, $currPhase + 1$}}
+    \State \Comment{Won the race - perform double handshake}
+    \State \Call{PerformHandshake}{$currPhase + 1$} \Comment{First handshake}
+    \State sizePhase $\gets currPhase + 2$ \Comment{Move to slow path}
+    \State \Call{PerformHandshake}{$currPhase + 2$} \Comment{Second handshake}
+    \State \Return $currPhase + 2$
+\Else
+    \State \Comment{Another thread is transitioning - wait}
+    \While{sizePhase $\bmod 3 \neq 2$}
+        \State spin
+    \EndWhile
+    \State \Return sizePhase
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{PerformHandshake(targetPhase)}
+\begin{algorithmic}[1]
+\State \Comment{Wait for all active threads to acknowledge phase}
+\State $activeThreads \gets$ maxThreadID + 1
+\For{$tid = 0$ to $activeThreads - 1$}
+    \While{opPhase[$tid$] $\neq$ IDLE\_PHASE $\land$ opPhase[$tid$] $<$ targetPhase}
+        \State \textsc{SpinWait}() \Comment{Wait for thread to acknowledge}
+    \EndWhile
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Aggregate Queries with Optimization}
+
+\begin{algorithm}[H]
+\caption{Size()}
+\begin{algorithmic}[1]
+\State \Comment{Optimized size query combining fast and slow path metadata}
+\State
+\State \Call{EnterSlowPath}{} \Comment{Perform handshakes if needed}
+\State
+\State \textbf{try:}
+\State $\quad$ \Comment{Read both metadata sources}
+\State $\quad$ $fastSize \gets$ root.fastSize \Comment{Fast path: sum of per-node counters}
+\State $\quad$ $version \gets$ root.version
+\State $\quad$ $slowSize \gets$ (version $\neq$ null ? version.nbChild : 0) \Comment{Slow path: snapshot}
+\State $\quad$
+\State $\quad$ \Comment{Combine for accurate result (similar to Section 5.1.4 optimization)}
+\State $\quad$ \Return $fastSize + slowSize$
+\State
+\State \textbf{finally:}
+\State $\quad$ $remaining \gets$ activeReaders.decrement()
+\State $\quad$ \If{$remaining = 0 \land$ sizePhase $\bmod 3 = 2$}
+\State $\quad\quad$ sizePhase.increment() \Comment{Last reader exits - return to fast path}
+\State $\quad$ \EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Rank(key)}
+\begin{algorithmic}[1]
+\State \Comment{Return 1-based rank of key in sorted order}
+\State \Comment{Combines fastSize and Version tree for accurate counting}
+\State
+\State \Call{EnterSlowPath}{}
+\State
+\State \textbf{try:}
+\State $\quad$ $current \gets$ root.left
+\State $\quad$ $rank \gets 0$
+\State $\quad$
+\State $\quad$ \While{$current \neq$ null}
+\State $\quad\quad$ \If{$current$ is LeafNode}
+\State $\quad\quad\quad$ \If{$current.key = key$} \Return $rank + 1$ \EndIf
+\State $\quad\quad\quad$ \Return $-1$ \Comment{Not found}
+\State $\quad\quad$ \EndIf
+\State $\quad\quad$
+\State $\quad\quad$ \Comment{Internal node - decide direction}
+\State $\quad\quad$ \If{key $<$ $current.key$}
+\State $\quad\quad\quad$ $current \gets current.left$
+\State $\quad\quad$ \Else
+\State $\quad\quad\quad$ \Comment{Going right - add left subtree size}
+\State $\quad\quad\quad$ \Comment{Combine both metadata sources (optimization)}
+\State $\quad\quad\quad$ $leftFast \gets current.left.fastSize$
+\State $\quad\quad\quad$ $leftVersion \gets current.left.version$
+\State $\quad\quad\quad$ $leftSlow \gets$ ($leftVersion \neq$ null ? $leftVersion.nbChild$ : 0)
+\State $\quad\quad\quad$ $rank \gets rank + leftFast + leftSlow$
+\State $\quad\quad\quad$ $current \gets current.right$
+\State $\quad\quad$ \EndIf
+\State $\quad$ \EndWhile
+\State $\quad$ \Return $-1$ \Comment{Not found}
+\State
+\State \textbf{finally:}
+\State $\quad$ \Comment{Exit slow path (same as Size)}
+\State $\quad$ $remaining \gets$ activeReaders.decrement()
+\State $\quad$ \If{$remaining = 0 \land$ sizePhase $\bmod 3 = 2$}
+\State $\quad\quad$ sizePhase.increment()
+\State $\quad$ \EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Select(k)}
+\begin{algorithmic}[1]
+\State \Comment{Return k-th smallest key (1-based indexing)}
+\State \Comment{Uses combined metadata for accurate navigation}
+\State
+\State \Call{EnterSlowPath}{}
+\State
+\State \textbf{try:}
+\State $\quad$ $current \gets$ root.left
+\State $\quad$ $remaining \gets k$
+\State $\quad$
+\State $\quad$ \While{$current \neq$ null}
+\State $\quad\quad$ \If{$current$ is LeafNode}
+\State $\quad\quad\quad$ \If{$current.key \neq$ null $\land$ $remaining = 1$}
+\State $\quad\quad\quad\quad$ \Return $current.key$
+\State $\quad\quad\quad$ \EndIf
+\State $\quad\quad\quad$ \Return null \Comment{Out of range}
+\State $\quad\quad$ \EndIf
+\State $\quad\quad$
+\State $\quad\quad$ \Comment{Calculate left subtree size (both metadata)}
+\State $\quad\quad$ $leftFast \gets current.left.fastSize$
+\State $\quad\quad$ $leftVersion \gets current.left.version$
+\State $\quad\quad$ $leftSlow \gets$ ($leftVersion \neq$ null ? $leftVersion.nbChild$ : 0)
+\State $\quad\quad$ $leftSize \gets leftFast + leftSlow$
+\State $\quad\quad$
+\State $\quad\quad$ \If{$remaining \leq leftSize$}
+\State $\quad\quad\quad$ $current \gets current.left$
+\State $\quad\quad$ \Else
+\State $\quad\quad\quad$ $remaining \gets remaining - leftSize$
+\State $\quad\quad\quad$ $current \gets current.right$
+\State $\quad\quad$ \EndIf
+\State $\quad$ \EndWhile
+\State $\quad$ \Return null \Comment{Out of range}
+\State
+\State \textbf{finally:}
+\State $\quad$ $remaining \gets$ activeReaders.decrement()
+\State $\quad$ \If{$remaining = 0 \land$ sizePhase $\bmod 3 = 2$}
+\State $\quad\quad$ sizePhase.increment()
+\State $\quad$ \EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Key Properties and Optimization}
+
+\begin{itemize}
+\item \textbf{Embedded Metadata:} Each node stores \texttt{fastSize} (fast path) and \texttt{version} (slow path) directly, improving cache locality compared to external metadata structures.
+
+\item \textbf{Dual Metadata System:}
+\begin{itemize}
+    \item Fast path: Updates modify \texttt{fastSize} along path to root (no CAS needed when no queries)
+    \item Slow path: Updates rebuild Version tree snapshot (immutable structure)
+    \item Queries: Read both and combine for accurate results (Section 5.1.4 optimization)
+\end{itemize}
+
+\item \textbf{Double Handshake Protocol:}
+\begin{itemize}
+    \item Phase 0 (mod 3): Fast path active, updates only modify \texttt{fastSize}
+    \item Phase 1 (mod 3): Transition phase, first handshake ensures all updates see the transition
+    \item Phase 2 (mod 3): Slow path active, updates propagate to Version tree, queries combine both metadata
+\end{itemize}
+
+\item \textbf{Optimization for Aggregate Queries:} Similar to the optimization described in Section 5.1.4 of the handshake paper, we combine:
+\begin{itemize}
+    \item \texttt{fastSize}: Captures updates that happened during fast path
+    \item \texttt{nbChild}: Captures the snapshot state from Version tree
+    \item Combined result: \texttt{fastSize + nbChild} gives accurate aggregate value
+\end{itemize}
+
+\item \textbf{Lazy Slow Path Exit:} Last reader transitions back to fast path automatically when \texttt{activeReaders} reaches 0.
+
+\item \textbf{Phase-Aware Updates:} Every operation checks phase on each retry, ensuring prompt handshake acknowledgment even during long-running operations.
+\end{itemize}
+
+\end{document}
