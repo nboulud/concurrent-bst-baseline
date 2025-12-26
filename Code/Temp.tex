@@ -1,0 +1,867 @@
+\documentclass[acmsmall,screen,nonacm]{acmart}
+\pdfoutput=1 
+
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{verbatim}
+\newcommand{\crefrangeconjunction}{--}
+\usepackage{cleveref}
+\usepackage{amsmath}
+\usepackage{float}
+
+\lstset{
+language=Java,
+basicstyle=\fontsize{9}{10}\ttfamily, 
+numbers=left,
+numberstyle=\tiny\color{black},
+numbersep=3.5pt,
+firstnumber=last,
+frame=tb,
+columns=fullflexible,
+showstringspaces=false,
+captionpos=t,
+mathescape=true,
+escapeinside={@}{@},
+tabsize=4,
+morekeywords={and,or},
+commentstyle=\color{gray}\fontsize{8.5}{10},
+xleftmargin=2ex,
+breaklines=true,
+backgroundcolor=\color{white},
+}
+\renewcommand{\lstlistingname}{Listing}
+
+\newcommand{\codestyle}[1]{{{\fontsize{9}{10}\ttfamily #1}}}
+\newcommand{\size}{\codestyle{size}}
+\newcommand{\ins}{\codestyle{in\-sert}}
+\newcommand{\del}{\codestyle{de\-lete}}
+\newcommand{\contains}{\codestyle{con\-tains}}
+\newcommand{\rank}{\codestyle{rank}}
+\newcommand{\select}{\codestyle{select}}
+\newcommand{\cas}{\texttt{CAS}}
+\newcommand{\nul}{\texttt{NULL}}
+
+\begin{document}
+
+\title{MyBSTnext: Optimized Fast Path with Forwarding Pointers \\
+for Concurrent Aggregate Queries}
+
+
+\maketitle
+
+
+\section{Node Structure Extensions}
+
+We augment BST nodes with forwarding pointer support:
+
+\begin{figure}[H]
+\begin{lstlisting}
+@\underline{class InternalNode}@:
+    // Original BST fields (key, left, right, parent, info)
+    fastSize: AtomicLong              // Fast path metadata
+    version: Version                  // Slow path metadata (immutable snapshot)
+    forwardingPtr: volatile Version   // Points to replacement Version (for chain navigation)
+    reversePtr: volatile InternalNode // Points to predecessor (for chain compression optimization)
+
+@\underline{class LeafNode}@:
+    // Original BST fields (key, value, parent)
+    fastSize: AtomicLong           // Always 1 for non-sentinel leaves
+    version: Version               // Immutable snapshot
+    // Note: Leaf nodes do NOT need forwardingPtr/reversePtr (never orphaned)
+
+@\underline{class Version}@:  // Immutable snapshot for slow path
+    left, right: Version
+    nbChild: int                   // Subtree size in this snapshot
+    node: reference to Node        // Back-reference to BST node
+\end{lstlisting}
+\caption{Node structure with forwarding pointer support}
+\label{fig:node-structure-next}
+\end{figure}
+
+Critical design decisions:
+\begin{itemize}
+\item \codestyle{forwardingPtr} and \codestyle{reversePtr} are stored in InternalNode only (leaf nodes are never orphaned)
+\item Both pointers are stored in the Node (not Version) because Versions are immutable
+\item Both are \codestyle{volatile} to ensure visibility across threads
+\item \codestyle{forwardingPtr} enables queries to navigate through obsolete nodes to current replacements
+\item \codestyle{reversePtr} enables chain compression by allowing predecessor updates (optimization in Step 3)
+\item Forwarding pointers are never cleared (acceptable memory overhead, avoids ABA-like issues)
+\end{itemize}
+
+\section{Data Structure Transformation}
+
+Following the handshake methodology, we transform \ins{} and \del{} operations. The key difference from both the handshake paper and MyBST is how metadata is updated in the fast path:
+
+\begin{figure}[H]
+\begin{lstlisting}
+IDLE_PHASE = -1, FAST_PHASE = -2
+@\underline{class MyBSTnext}@:
+    @\underline{MyBSTnext()}@:
+        @Initialize BST as originally (root, sentinel nodes, etc.)@
+        this.queriesPhase = 0  @// Uses mod 4 for hardware efficiency (bitwise \& 3)@
+        this.opPhase = new AtomicLong[MAX_THREADS]
+        this.activeReaders = 0  @// Count of active aggregate queries@
+        this.activeSlowOps = 0  @// NEW: Count of active slow operations (still propagating)@
+    @\underline{$fast\_op$(k)}@:  @// For @\ins{}@ or @\del{}
+        @Perform the original BST operation.@
+        @On successful modification at node n:@
+            @Set forwarding pointer in orphaned node@
+            fastUpdateMetadataOnly(delta, n.parent) @// Update ONLY fastSize (no Version updates)@
+        Return the result of the original operation.
+    @\underline{slow\_op(k)}@:  @// For @\ins{}@ or @\del{}
+        @\textbf{try}@:
+            this.activeSlowOps.increment()  @// Announce slow operation starting@
+            @Perform the original BST operation.@
+            @On successful modification at node n:@
+                propagate(n.parent) @// Update both Version structure and nbChild to root@
+            Return the result of the original operation.
+        @\textbf{finally}@:
+            this.activeSlowOps.decrement()  @// Slow operation complete (propagated to root)@
+@
+\end{lstlisting}
+\caption{MyBSTnext transformation with forwarding pointers for fast path}
+\label{fig:mybstnext-transformation}
+\end{figure}
+
+
+\textbf{Optimization:} MyBSTnext additionally re-checks phase on every retry iteration within the operation loop, allowing faster response to concurrent handshakes during long-running operations.
+
+\subsection{Handshake Mechanism Overview}
+
+The handshake protocol coordinates between fast update operations and aggregate queries, ensuring queries can safely read metadata without expensive per-operation synchronization.
+
+\textbf{Goal of handshake:} Allow fast operations to run without synchronization overhead when no queries are active, while providing a synchronization barrier when queries need consistent snapshots.
+
+The handshake protocol (\codestyle{\_performHandshake}, \codestyle{\_doFirstAndSecondHandshakes}) follows the handshake paper exactly. The phase cycle with modulo-4:
+\begin{itemize}
+\item Phase 0 (mod 4 = 0): Fast path allowed, no concurrent aggregate queries
+\item Phase 1 (mod 4 = 1): First handshake - threads acknowledge transition, switch to slow path  
+\item Phase 2 (mod 4 = 2): Second handshake - all threads confirmed in slow path, aggregate queries execute
+\item Phase 3 (skipped): Last reader increments by 2 (phase 2 → 4 → 0 mod 4), returning to fast path
+\end{itemize}
+Using modulo-4 enables efficient hardware computation via bitwise AND with constant 3.
+
+The transition mechanisms are provided by helper functions \codestyle{\_enterSlowPath()} and \codestyle{\_exitSlowPath()}, detailed in Section 4. These functions handle the coordination for queries entering and exiting slow path mode, managing the \codestyle{activeReaders} counter and phase transitions.
+
+\section{Fast Path Implementation}
+
+The fast path is designed to minimize synchronization overhead when no queries are active. We build up the implementation in three steps: basic metadata updates, forwarding pointers for navigation, and chain compression optimization.
+
+\subsection{Step 1: Basic Fast Path - Metadata Updates Only}
+
+The core of the fast path is updating \codestyle{fastSize} metadata without touching the Version tree structure. This is fundamentally different from MyBST, which performed $O(\log n)$ Version tree updates.
+
+\subsubsection{Lightweight Metadata Update}
+
+\begin{figure}[H]
+\begin{lstlisting}
+@\underline{fastUpdateMetadataOnly(delta, startNode)}@:
+    current = startNode
+    @\textbf{while}@ current $\neq$ null:
+        @\textbf{if}@ current @\textbf{is}@ InternalNode:
+            current.fastSize.addAndGet(delta)  @// Only fastSize update!@
+        current = current.parent
+\end{lstlisting}
+\caption{Basic fast path metadata update - O(log n) atomic additions, no Version CAS}
+\label{fig:fast-metadata-basic}
+\end{figure}
+
+This function updates \codestyle{fastSize} counters along the path from the modification point to the root. Key properties:
+\begin{itemize}
+\item Uses atomic \codestyle{addAndGet()} - never fails, no retry overhead
+\item No CAS operations on Version nodes - eliminates contention
+\item No new Version object allocations - reduces memory pressure
+\item $O(\log n)$ atomic additions, but these are non-conflicting operations
+\end{itemize}
+
+At this stage, the fast path would break query correctness because Version tree structure becomes stale. The next two steps address this.
+
+\subsection{Step 2: Adding Forwarding Pointers for Navigation}
+
+To enable queries to navigate through structural changes made by fast operations, we add forwarding pointers that connect orphaned nodes to their replacements.
+
+\subsubsection{Fast Insert with Forwarding Pointers}
+
+\begin{figure}[H]
+\begin{lstlisting}
+@\underline{helpInsert(info, useFastPath)}@:
+    onLeft = (info.p.left == info.l)
+    spliced = onLeft
+        ? leftUpdater.compareAndSet(info.p, info.l, info.lReplacingNode)
+        : rightUpdater.compareAndSet(info.p, info.l, info.lReplacingNode)
+    
+    @\textbf{if}@ spliced:
+        info.lReplacingNode.parent = info.p
+        
+        @\textbf{if}@ useFastPath:
+            @// STEP 1: Set forwarding pointer in orphaned node@
+            @// info.l is now orphaned (replaced by info.lReplacingNode)@
+            info.l.forwardingPtr = info.lReplacingNode.version
+            
+            @// STEP 2: Update fastSize along path@
+            fastUpdateMetadataOnly(1, info.p)
+        @\textbf{else}@:
+            @// Slow path: Full propagation (updates structure + nbChild)@
+            propagate(info.p)
+    
+    infoUpdater.compareAndSet(info.p, info, @\textbf{new}@ Clean())
+\end{lstlisting}
+\caption{Fast insert with forwarding pointer}
+\label{fig:fast-insert-forwarding}
+\end{figure}
+
+\subsubsection{Fast Delete with Forwarding Pointers}
+
+\begin{figure}[H]
+\begin{lstlisting}
+@\underline{helpMarked(info, useFastPath)}@:
+    other = (info.p.right == info.l) ? info.p.left : info.p.right
+    pIsLeft = (info.gp.left == info.p)
+    swung = pIsLeft
+        ? leftUpdater.compareAndSet(info.gp, info.p, other)
+        : rightUpdater.compareAndSet(info.gp, info.p, other)
+    
+    @\textbf{if}@ swung:
+        other.parent = info.gp
+        
+        @\textbf{if}@ useFastPath:
+            @// STEP 1: Set forwarding pointer in orphaned parent@
+            @// info.p is now orphaned (its child 'other' was promoted)@
+            info.p.forwardingPtr = other.version
+            
+            @// STEP 2: Update fastSize along path@
+            fastUpdateMetadataOnly(-1, info.gp)
+        @\textbf{else}@:
+            @// Slow path: Full propagation@
+            propagate(info.gp)
+    
+    infoUpdater.compareAndSet(info.gp, info, @\textbf{new}@ Clean())
+\end{lstlisting}
+\caption{Fast delete with forwarding pointer}
+\label{fig:fast-delete-forwarding}
+\end{figure}
+
+\textbf{What forwarding pointers add:}
+
+\begin{itemize}
+\item Enable queries to navigate from old Version snapshots to current BST structure
+\item Only one volatile write per operation (cheap compared to CAS)
+\item Orphaned nodes remain accessible via old Version references, but redirect to replacements
+\item Queries can follow these redirections to find current \codestyle{fastSize} values
+\end{itemize}
+
+\textbf{Cost}: One additional volatile write per fast operation - minimal overhead.
+
+\subsection{Step 3: Chain Compression with Reverse Pointers}
+
+Multiple fast operations on the same subtree can create chains of forwarding pointers. Reverse pointers allow us to compress these chains as they form, maintaining depth $\leq$ 1.
+
+
+\begin{figure}[H]
+\begin{lstlisting}
+@\underline{helpInsert(info, useFastPath)}@:
+    onLeft = (info.p.left == info.l)
+    spliced = onLeft
+        ? leftUpdater.compareAndSet(info.p, info.l, info.lReplacingNode)
+        : rightUpdater.compareAndSet(info.p, info.l, info.lReplacingNode)
+    
+    @\textbf{if}@ spliced:
+        info.lReplacingNode.parent = info.p
+        
+        @\textbf{if}@ useFastPath:
+            @// Determine the final target (follow existing chain if present)@
+            finalTarget = info.lReplacingNode.version
+            @\textbf{if}@ info.lReplacingNode @\textbf{is}@ InternalNode @\textbf{and}@ info.lReplacingNode.forwardingPtr $\neq$ null:
+                @// Replacement already points forward - follow to end of chain@
+                finalTarget = info.lReplacingNode.forwardingPtr
+            
+            @// Check if we're extending an existing chain (replacement has predecessor)@
+            @\textbf{if}@ info.lReplacingNode @\textbf{is}@ InternalNode @\textbf{and}@ info.lReplacingNode.reversePtr $\neq$ null:
+                @// Chain exists backward - update predecessor to skip intermediate nodes@
+                predecessor = info.lReplacingNode.reversePtr
+                predecessor.forwardingPtr = finalTarget
+                @// reversePtr stays at predecessor@
+            @\textbf{else}@:
+                @// First link - create new chain@
+                info.l.forwardingPtr = finalTarget
+                @\textbf{if}@ finalTarget.node @\textbf{is}@ InternalNode:
+                    finalTarget.node.reversePtr = info.l
+            
+            fastUpdateMetadataOnly(1, info.p)
+        @\textbf{else}@:
+            propagate(info.p)
+    
+    infoUpdater.compareAndSet(info.p, info, @\textbf{new}@ Clean())
+\end{lstlisting}
+\caption{Fast insert with chain compression via reverse pointers}
+\label{fig:fast-insert-final}
+\end{figure}
+
+
+\begin{figure}[H]
+\begin{lstlisting}
+@\underline{helpMarked(info, useFastPath)}@:
+    other = (info.p.right == info.l) ? info.p.left : info.p.right
+    pIsLeft = (info.gp.left == info.p)
+    swung = pIsLeft
+        ? leftUpdater.compareAndSet(info.gp, info.p, other)
+        : rightUpdater.compareAndSet(info.gp, info.p, other)
+    
+    @\textbf{if}@ swung:
+        other.parent = info.gp
+        
+        @\textbf{if}@ useFastPath:
+            @// Determine final target (follow forward chain if present)@
+            finalTarget = other.version
+            @\textbf{if}@ other @\textbf{is}@ InternalNode @\textbf{and}@ other.forwardingPtr $\neq$ null:
+                @// Target already points forward - follow to end of chain@
+                finalTarget = other.forwardingPtr
+            
+            @// Check if orphaned node has a predecessor in a chain@
+            @\textbf{if}@ info.p.reversePtr $\neq$ null:
+                @// Chain exists backward - update predecessor to skip info.p@
+                predecessor = info.p.reversePtr
+                predecessor.forwardingPtr = finalTarget
+                @\textbf{if}@ finalTarget.node @\textbf{is}@ InternalNode:
+                    finalTarget.node.reversePtr = predecessor
+                @// Don't set info.p.forwardingPtr - it's skipped@
+            @\textbf{else}@:
+                @// First link - create new chain@
+                info.p.forwardingPtr = finalTarget
+                @\textbf{if}@ finalTarget.node @\textbf{is}@ InternalNode:
+                    finalTarget.node.reversePtr = info.p
+            
+            fastUpdateMetadataOnly(-1, info.gp)
+        @\textbf{else}@:
+            propagate(info.gp)
+    
+    infoUpdater.compareAndSet(info.gp, info, @\textbf{new}@ Clean())
+\end{lstlisting}
+\caption{Fast delete with chain compression via reverse pointers}
+\label{fig:fast-delete-final}
+\end{figure}
+
+\textbf{What the optimization adds:}
+
+The algorithm checks TWO conditions to compress chains in both directions:
+\begin{enumerate}
+\item \textbf{Target has forwardingPtr}: If the node we want to point to already has a forwarding pointer, follow it to the final target (compress upward chain)
+\item \textbf{Orphaned node has reversePtr}: If an existing node already points to our replacement, update that predecessor directly (compress downward chain)
+\end{enumerate}
+
+This handles chains forming in both directions from consecutive operations on the same subtree.
+
+
+
+\textbf{Correctness:}
+
+\begin{itemize}
+\item The handshake ensures no queries execute during fast phase - no concurrent reads of forwarding pointers
+\item Only one operation orphans any given node - no concurrent updates to same \codestyle{forwardingPtr}
+\item Checking target's \codestyle{forwardingPtr} before setting ensures we follow any existing chain to its end
+\item Checking replacement's \codestyle{reversePtr} allows updating the chain head to skip intermediate nodes
+\item Both compressions use only volatile reads and writes - no CAS needed
+\end{itemize}
+
+\textbf{Time complexity:} O(1) - two additional volatile reads (check \codestyle{forwardingPtr} and \codestyle{reversePtr}), at most two volatile writes. No traversal, no CAS retry loops.
+
+\textbf{Result:} With chain compression, all chains have depth $\leq$ 1, guaranteeing queries perform at most one forwarding pointer hop during navigation.
+
+\section{Aggregate Query Implementation}
+
+\subsection{Shared Helper: Entering Slow Path}
+
+All aggregate queries (\size{}, \rank{}, \select{}) share a common protocol to enter slow path mode, using \codestyle{\_doFirstAndSecondHandshakes} from the handshake paper (Section 5.1):
+
+\begin{figure}[H]
+\begin{lstlisting}
+    @\underline{\_enterSlowPath()}@:
+        this.activeReaders.increment()
+        currPhase = this.queriesPhase.getVolatile()
+        
+        @// Case 1: Already in slow path - skip to next slow path cycle@
+        @\textbf{if}@ currPhase\&3 == 2:
+            this.queriesPhase.compareAndSet(currPhase, currPhase + 4)
+            @\textbf{return}@ this.queriesPhase.getVolatile()
+        
+        @// Case 2: Wait for slow path transition to complete@
+        @\textbf{while}@ currPhase\&3 $\neq$ 0:
+            currPhase = this.queriesPhase.getVolatile()
+            @\textbf{if}@ currPhase\&3 == 2:  @// Transition completed@
+                @\textbf{return}@ currPhase
+        
+        @// Case 3: Try to win race and perform handshakes@
+        @\textbf{if}@ this.queriesPhase.compareAndSet(currPhase, currPhase + 1):
+            @\textbf{return}@ this.\_doFirstAndSecondHandshakes()  @// From handshake paper@
+        @\textbf{else}@:  @// Another thread won the race@
+            @\textbf{do}@:
+                currPhase = this.queriesPhase.getVolatile()
+            @\textbf{while}@ currPhase\&3 $\neq$ 2
+            @\textbf{return}@ currPhase
+\end{lstlisting}
+\caption{MyBSTnext slow path entry protocol with phase conflict resolution}
+\label{fig:mybstnext-enterslowpath}
+\end{figure}
+
+\subsection{Shared Helper: Exiting Slow Path}
+
+All aggregate queries share a common protocol to exit slow path mode. The last reader to finish transitions back to fast path:
+
+\begin{figure}[H]
+\begin{lstlisting}
+    @\underline{\_exitSlowPath(currPhase)}@:
+        remaining = this.activeReaders.decrement()
+        @\textbf{if}@ remaining == 0 @\textbf{and}@ currPhase\&3 == 2:
+            this.queriesPhase.compareAndSet(currPhase, currPhase + 2) @// Increment by 2@
+\end{lstlisting}
+\caption{MyBSTnext slow path exit protocol - last reader returns to fast path}
+\label{fig:mybstnext-exitslowpath}
+\end{figure}
+
+\subsection{Query Navigation with Forwarding Pointers}
+
+Queries navigate the Version tree, checking for forwarding pointers at each step to handle nodes orphaned by fast operations.
+
+\subsubsection{Size Query}
+
+Size is the simplest query - it only reads root metadata without tree navigation.
+
+\begin{figure}[H]
+\begin{lstlisting}
+    @\underline{computeSubtreeSize(version)}@:  @// Helper to compute size of Version subtree@
+        @\textbf{if}@ version == null: @\textbf{return}@ 0
+        @// Combine slow (nbChild) and fast (fastSize) metadata@
+        @\textbf{return}@ version.nbChild + version.node.fastSize.getVolatile()
+    
+    @\underline{size()}@:
+    @\textbf{try}@:
+        currPhase = this.\_enterSlowPath()
+        @\textbf{return}@ computeSubtreeSize(this.root.version)
+    @\textbf{finally}@:
+        this.\_exitSlowPath(currPhase)
+\end{lstlisting}
+\caption{Size query using subtree size helper method}
+\label{fig:size-with-helper}
+\end{figure}
+
+
+\subsubsection{Rank Query with Forwarding Navigation}
+
+\begin{figure}[H]
+\begin{lstlisting}
+    @\underline{rank(k)}@:
+    @\textbf{try}@:
+        currPhase = this.\_enterSlowPath()
+        snapshot = this.root.version
+        @\textbf{if}@ snapshot == null: @\textbf{return}@ -1
+        
+        current = snapshot
+        rank = 0
+        
+        @\textbf{while}@ current.left $\neq$ null:  @// Navigate until reaching leaf@
+            @// CHECK FOR FORWARDING POINTER@
+            @\textbf{if}@ current.node.forwardingPtr $\neq$ null:
+                @// This node is orphaned - jump to replacement@
+                replacement = current.node.forwardingPtr
+                current = replacement
+                @\textbf{continue}@
+            
+            @// Normal navigation (non-orphaned node)@
+            @\textbf{if}@ k < current.key:
+                current = current.left
+            @\textbf{else}@:
+                @// Going right: add left subtree size@
+                rank += computeSubtreeSize(current.left)
+                current = current.right
+        
+        @// Reached leaf - check if it's our key@
+        @\textbf{if}@ current.key == k: @\textbf{return}@ rank + 1
+        @\textbf{return}@ -1
+    @\textbf{finally}@:
+        this.\_exitSlowPath(currPhase)
+\end{lstlisting}
+\caption{Rank query using subtree size helper method}
+\label{fig:rank-with-forwarding}
+\end{figure}
+
+\subsubsection{Select Query with Forwarding Navigation}
+
+\begin{figure}[H]
+\begin{lstlisting}
+    @\underline{select(k)}@:
+    @\textbf{try}@:
+        currPhase = this.\_enterSlowPath()
+        snapshot = this.root.version
+        @\textbf{if}@ snapshot == null: @\textbf{return}@ null
+        
+        current = snapshot
+        remaining = k
+        
+        @\textbf{while}@ current.left $\neq$ null:  @// Navigate until reaching leaf@
+            @// CHECK FOR FORWARDING POINTER@
+            @\textbf{if}@ current.node.forwardingPtr $\neq$ null:
+                @// This node is orphaned - jump to replacement@
+                replacement = current.node.forwardingPtr
+                current = replacement
+                @\textbf{continue}@
+            
+            @// Normal navigation (non-orphaned node)@
+            @// Calculate left subtree size using helper@
+            leftSize = computeSubtreeSize(current.left)
+            
+            @\textbf{if}@ remaining $\leq$ leftSize:
+                current = current.left
+            @\textbf{else}@:
+                remaining -= leftSize
+                current = current.right
+        
+        @// Reached leaf@
+        @\textbf{if}@ current.key $\neq$ null @\textbf{and}@ remaining == 1: @\textbf{return}@ current.key
+        @\textbf{return}@ null
+    @\textbf{finally}@:
+        this.\_exitSlowPath(currPhase)
+\end{lstlisting}
+\caption{Select query using subtree size helper method}
+\label{fig:select-with-forwarding}
+\end{figure}
+
+\section{Contains Implementation}
+
+\codestyle{contains} (or \codestyle{get}) operations are read-only and must execute efficiently without handshakes while ensuring correct linearization with concurrent slow operations. The implementation varies by phase and uses the \codestyle{activeSlowOps} counter to detect concurrent slow operations.
+
+\subsection{Phase-Based Contains Logic}
+
+\begin{figure}[H]
+\begin{lstlisting}
+@\underline{get(k)}@:
+    currentPhase = this.queriesPhase.getVolatile()
+    
+    @// Phase 2: Use Version tree navigation (slow contains)@
+    @// Does NOT increment activeSlowOps - just reads the Version tree@
+    @\textbf{if}@ currentPhase\&3 == 2:
+        @// Navigate Version tree to find key@
+        result = getViaVersionTree(k)
+        
+        @// After getting result, check if we're still in same phase we entered@
+        @// Compare both phase type (bits 0-1) AND phase counter (bits 2+)@
+        exitPhase = this.queriesPhase.getVolatile()
+        @\textbf{if}@ (exitPhase\&3) == 2 @\textbf{and}@ (exitPhase >> 2) == (currentPhase >> 2):
+            @// Still in same phase instance - result is valid@
+            @\textbf{return}@ result
+        @\textbf{else}@:
+            @// Phase changed during operation - retry with current phase@
+            @\textbf{return}@ get(k)  @// Tail recursion - retry@
+    
+    @// Phase 0 or 1: Use BST navigation (fast contains)@
+    l = root.left
+    @\textbf{while}@ l @\textbf{is}@ InternalNode:
+        l = (k < l.key) ? l.left : l.right
+    
+    @\textbf{if}@ l.key == k:
+        @// Key found - check if slow operations are active@
+        @\textbf{if}@ this.activeSlowOps.getVolatile() > 0:
+            @// Slow operations still propagating - help them complete@
+            propagate(root)  @// Ensures all slow ops linearized@
+            @// After helping, all slow ops linearized - safe to return@
+        @\textbf{return}@ l.value
+    
+    @\textbf{return}@ null  @// Key not found@
+
+@\underline{getViaVersionTree(k)}@:  @// Helper for phase 2 Version tree navigation@
+    version = root.version
+    @\textbf{if}@ version == null: @\textbf{return}@ null
+    
+    @\textbf{while}@ version.left $\neq$ null:
+        version = (k < version.key) ? version.left : version.right
+    
+    @\textbf{if}@ version.key == k:
+        @\textbf{return}@ version.node.value
+    @\textbf{return}@ null
+\end{lstlisting}
+\caption{Complete contains implementation with phase validation}
+\label{fig:contains-complete}
+\end{figure}
+
+\subsection{Correctness of Contains}
+
+\textbf{Phase 2 validation mechanism:}
+
+When \codestyle{get()} detects phase 2, it uses a simpler validation approach without registration:
+\begin{enumerate}
+\item \textbf{Read currentPhase}: Capture the phase when entering
+\item \textbf{Navigate Version tree}: Read the immutable snapshot structure
+\item \textbf{Validate phase on exit}: Check if still in same phase instance
+\item \textbf{Compare full phase}: Both phase type (bits 0-1) AND phase counter (bits 2+)
+\item \textbf{If phase changed}: Retry with new current phase (tail recursion)
+\item \textbf{If same phase}: Result is valid, return it
+\end{enumerate}
+
+\textbf{Why phase counter comparison is critical:}
+
+Without comparing the phase counter (bits 2+), this race could occur:
+\begin{itemize}
+\item T1: Reads phase 2 (counter=0), starts Version tree navigation
+\item T2: Last aggregate query exits, transitions phase 2 → 4 → 0
+\item T3: Fast insert runs (doesn't update Version tree)
+\item T4: New aggregate query enters, transitions phase 0 → 1 → 2 (counter=1)
+\item T1: Finishes navigation, checks phase, sees phase 2 → \textbf{incorrectly accepts stale result!}
+\end{itemize}
+
+By comparing the full phase (including counter), T1 detects the phase cycle and retries.
+
+
+\section{Linearizability and Correctness}
+
+
+Following the augmented BST paper, we define arrival points to track when update operations' effects become visible in the metadata at each node. The linearization order is then defined by arrival points at the root:
+
+\begin{itemize}
+\item Update operations: Linearized at their arrival point at the root node
+\item Queries: Linearized when they obtain a snapshot by reading \codestyle{root.version}
+\end{itemize}
+
+The arrival point of an update operation at a node $x$ occurs when both conditions hold:
+\begin{enumerate}
+\item Node $x$ is on the search path for the operation's key
+\item The operation's effect is reflected in the metadata accessible from \codestyle{x.version} (either directly via \codestyle{nbChild}, or indirectly via \codestyle{fastSize} and forwarding pointers)
+\end{enumerate}
+
+
+We organize the linearization analysis by handshake phase, showing which operations can execute concurrently in each phase and their linearization points.
+
+\subsection{Phase 0: Fast Path}
+
+When \codestyle{queriesPhase \& 3 == 0}, the system is in fast path mode. The following operations can execute concurrently:
+
+\paragraph{Fast insert/delete:}
+
+\textit{Linearization point:} Original BST linearization point (CAS on \codestyle{parent.info} succeeds).
+
+\textit{Concurrent operations:} Other fast operations, contains/get.
+
+\textit{Correctness:} Multiple fast operations use base lock-free BST synchronization (CAS, helping). Each updates independent metadata: sets one forwarding pointer (volatile write) and updates \codestyle{fastSize} (atomic additions). No CAS conflicts on Version nodes.
+
+
+\paragraph{Slow insert/delete:}
+
+Slow operations that **started in Phase 2** may still be executing \codestyle{propagate()} when system returns to Phase 0 (last query finished and decremented \codestyle{activeReaders} to 0).
+
+\textit{Linearization point:} Original BST CAS (structural modification point). Like in Phase 1
+
+\textit{Concurrent operations:} Fast operations (new, starting in Phase 0), contains/get.
+
+\textit{Correctness - Slow op from Phase 2 concurrent with fast contains in Phase 0:}
+\begin{itemize}
+\item Slow operation incremented \codestyle{activeSlowOps} before BST modification
+\item Slow operation still propagating, \codestyle{activeSlowOps > 0}
+\item Fast contains checks \codestyle{activeSlowOps} after reading leaf
+\item If > 0: Contains helps by calling \codestyle{propagate(root)}
+\item This ensures slow operation completes before contains returns
+\item Contains linearized after slow operation - correct order
+\end{itemize}
+
+This scenario requires the \codestyle{activeSlowOps} counter to detect slow operations from previous slow phase that are still completing. See Section 5 for complete contains implementation.
+
+\paragraph{Contains/get:}
+
+\textit{Linearization point:} When the operation return the node.
+
+\textit{Correctness:} Navigates BST structure (always consistent per lock-free BST paper). If depends on a slow operation not yet linearized, retrospectively linearized after that slow operation.
+
+\paragraph{Aggregate queries (size/rank/select):}
+
+Cannot execute in Phase 0. Any query calling \codestyle{\_enterSlowPath()} will trigger transition to Phase 1.
+
+
+
+\subsection{Phase 1: First Handshake}
+
+When \codestyle{queriesPhase \& 3 == 1}, a query has initiated the transition to slow path. The first handshake is in progress - threads are acknowledging the transition. The following operations can execute concurrently:
+
+\paragraph{Fast insert/delete:}
+
+These are fast operations that **read phase $\equiv_4$ 0** (started in Phase 0) but are still executing during Phase 1 transition.
+
+\textit{Linearization point:} Original BST CAS on \codestyle{parent.info} (same as Phase 0).
+
+\textit{Concurrent operations:} Other fast operations (from Phase 0), slow operations (starting in Phase 1), contains/get.
+
+\textit{Correctness:} Operations that started in Phase 0 continue as fast operations even during Phase 1. They can be concurrent with slow operations that read phase 1 and begin propagating. This is safe because they touch different metadata fields.
+
+\paragraph{Slow insert/delete:}
+
+These are slow operations that **read phase $\equiv_4$ 1** at the start (initiated during Phase 1).
+
+\textit{Linearization point:} Original BST CAS (structural modification point).
+
+\textit{Concurrent operations:} Fast operations (started in Phase 0, still executing), other slow operations, contains/get.
+
+\textit{Correctness - Concurrent fast and slow:} Slow operations starting in Phase 1 can be concurrent with fast operations that started in Phase 0. This is safe because:
+\begin{itemize}
+\item Slow operation linearized at its BST CAS
+\item Fast operations (from Phase 0) linearized at their BST CAS points  
+\item Ordering by CAS timestamps: operations ordered by when their BST CAS succeeds
+\item Slow operation's \codestyle{propagate()} updates \codestyle{node.version} (new Versions with \codestyle{nbChild})
+\item Fast operations update \codestyle{node.fastSize} and \codestyle{forwardingPtr}
+\item No conflicts - different metadata fields
+\end{itemize}
+
+This follows the handshake paper's treatment (Figure 24) where operations that start in different phases can execute concurrently during the transition. Multiple slow operations may CAS conflict on \codestyle{node.version}, handled by retry logic in \codestyle{propagate()}.
+
+\paragraph{Contains/get:}
+
+Contains uses the same logic as Phase 0 (see Section 5 for complete implementation)
+
+\paragraph{Aggregate queries:}
+
+Blocked - waiting for Phase 1 to complete before transitioning to Phase 2.
+
+\subsection{Phase 2: Slow Path}
+
+When \codestyle{queriesPhase \& 3 == 2}, the second handshake is complete. All threads have acknowledged slow path. The following operations can execute concurrently:
+
+\paragraph{Fast insert/delete:}
+
+Cannot execute - all threads that read phase $\equiv_4$ 2 use slow path.
+
+\paragraph{Slow insert/delete:}
+
+\textit{Linearization point:} When operation reads phase $\equiv_4$ 2: linearized when \codestyle{propagate()} reaches root (arrival point at root).
+
+\textit{Concurrent operations:} Aggregate queries (executing), other slow operations.
+
+\textit{Correctness - Retrospective linearization:}
+
+Following augmented BST paper, linearization is when \codestyle{propagate()} reaches root. Ordering may be adjusted retrospectively:
+\begin{itemize}
+\item No concurrent query: Operation linearized at \codestyle{propagate()} completion
+\item Query concurrent with \codestyle{propagate()}:
+    \begin{itemize}
+    \item Query reads \codestyle{root.version} after \codestyle{propagate()} completes $\Rightarrow$ query sees update $\Rightarrow$ operation linearized at \codestyle{propagate()} time
+    \item Query reads \codestyle{root.version} before \codestyle{propagate()} completes $\Rightarrow$ query doesn't see update $\Rightarrow$ operation retrospectively ordered after query (even though arrival point at root is later)
+    \end{itemize}
+\end{itemize}
+
+\textit{Why activeReaders suffices (vs handshake paper's collecting field):}
+
+Handshake paper uses \codestyle{collecting} to track which specific queries observed which updates. MyBSTnext uses only \codestyle{activeReaders} count. This is sufficient because:
+\begin{itemize}
+\item Handshake paper: Mutable counters $\Rightarrow$ need explicit snapshot marker (\codestyle{collecting})
+\item MyBSTnext: Immutable Version tree $\Rightarrow$ snapshot itself is the marker
+\item Query's \codestyle{root.version} reference determines observability - no need to track query identities
+\end{itemize}
+
+\textit{Structural dependencies:} \codestyle{propagate()} traverses parent pointers to root, handling concurrent tree modifications (augmented BST paper Section 4.3).
+
+\paragraph{Aggregate queries (size/rank/select):}
+
+\textit{Linearization point:} When query reads \codestyle{root.version} (after \codestyle{\_enterSlowPath()} completes both handshakes).
+
+\textit{Concurrent operations:} Only slow operations (all fast operations finished or switched to slow path).
+
+\textit{Correctness - Snapshot consistency:}
+\begin{itemize}
+\item \codestyle{\_enterSlowPath()} completes both handshakes - no fast operations executing
+\item Query reads \codestyle{root.fastSize} and \codestyle{root.version} - forms atomic snapshot
+\item Navigation follows potentially stale Version tree, using forwarding pointers to reach current nodes
+\item For orphaned nodes: combines \codestyle{Version.nbChild} (slow) + replacement's \codestyle{fastSize} (fast)
+\item Handshake ensures all forwarding pointers written before query's linearization point
+\end{itemize}
+
+All three query types (\size{}, \rank{}, \select{}) share the same linearization semantics.
+
+\paragraph{Contains/get:}
+
+\textit{Implementation:} In Phase 2, \codestyle{contains} uses Version tree navigation (like aggregate queries) instead of BST navigation:
+
+
+\textit{Linearization point:} When reads \codestyle{root.version} (obtains immutable snapshot).
+
+\textit{Correctness:} Uses immutable Version tree snapshot, ensuring consistency with concurrent aggregate queries and slow operations. No dependency issues because snapshot is atomic and immutable. This is safe and correct - \codestyle{contains} becomes a "slow contains" that navigates the Version tree rather than the BST, avoiding races with concurrent slow operations that are modifying BST structure.
+
+
+\section{Experimental Evaluation}
+
+We evaluated MyBST's performance compared to baseline approaches, measuring both operational overhead and query scalability. 
+
+\subsection{Experimental Setup}
+
+
+\begin{itemize}
+\item \textbf{Read-heavy}: 3\% \ins{}, 2\% \del{}, 95\% \contains{}
+\item \textbf{Update-heavy}: 30\% \ins{}, 20\% \del{}, 50\% \contains{}
+\end{itemize}
+
+
+\subsection{Overhead Results}
+
+\Cref{fig:mybst-overhead-a} and \Cref{fig:mybst-overhead-b} shows throughput measurements comparing MyBST with the baseline BST, handshake-based size, and other methodologies. The figure presents three scenarios: (1) without concurrent size queries (showing infrastructure overhead), (2) with continuous size queries (no delay), and (3) with occasional size queries (700 $\mu$s delay).
+
+\begin{figure*}[!ht]
+    \centering
+    \medskip
+    \textit{Read heavy}\quad\quad\quad
+    \includegraphics[height=.02\textwidth]{BST/legend_overhead.png}\quad\quad\quad
+    \textit{Update heavy}\par
+    \medskip
+
+    \text{Without a concurrent \size{} thread}\par
+    \smallskip
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .1cm}]{BST/overhead_united_BST_1000000setSize_3ins-2rem_0sizeThreads_0delay.png}\hspace{2.5em}
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .1cm}]{BST/overhead_united_BST_1000000setSize_30ins-20rem_0sizeThreads_0delay.png}\par
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .2cm}]{BST/overhead_united_bar_BST_1000000setSize_3ins-2rem_0sizeThreads_0delay.png}\hspace{2.5em}
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .2cm}]{BST/overhead_united_bar_BST_1000000setSize_30ins-20rem_0sizeThreads_0delay.png}\par
+
+    \medskip
+    \text{With a concurrent \size{} thread and no delay}\par
+    \smallskip
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .1cm}]{BST/overhead_united_BST_1000000setSize_3ins-2rem_1sizeThreads_0delay.png}\hspace{2.5em}
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .1cm}]{BST/overhead_united_BST_1000000setSize_30ins-20rem_1sizeThreads_0delay.png}\par
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .2cm}]{BST/overhead_united_bar_BST_1000000setSize_3ins-2rem_1sizeThreads_0delay.png}\hspace{2.5em}
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .2cm}]{BST/overhead_united_bar_BST_1000000setSize_30ins-20rem_1sizeThreads_0delay.png}\par
+
+    \caption{Overhead on BST operations with MyBST and baseline methodologies (Part 1)}
+    \label{fig:mybst-overhead-a}
+\end{figure*}
+
+\begin{figure*}[!ht]
+    \centering
+    \medskip
+    \textit{Read heavy}\quad\quad\quad
+    \includegraphics[height=.02\textwidth]{BST/legend_overhead.png}\quad\quad\quad
+    \textit{Update heavy}\par
+    \medskip
+
+    \text{With a concurrent \size{} thread and 700 $\mu$s delay}\par
+    \smallskip
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .1cm}]{BST/overhead_united_BST_1000000setSize_3ins-2rem_1sizeThreads_700delay.png}\hspace{2.5em}
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .1cm}]{BST/overhead_united_BST_1000000setSize_30ins-20rem_1sizeThreads_700delay.png}\par
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .2cm}]{BST/overhead_united_bar_BST_1000000setSize_3ins-2rem_1sizeThreads_700delay.png}\hspace{2.5em}
+    \includegraphics[width=.45\textwidth,trim={0 0 0 .2cm}]{BST/overhead_united_bar_BST_1000000setSize_30ins-20rem_1sizeThreads_700delay.png}\par
+
+    \caption{Overhead on BST operations with MyBST and baseline methodologies (Part 2)}
+    \label{fig:mybst-overhead-b}
+\end{figure*}
+
+
+\subsection{Size Query Scalability}
+
+\Cref{fig:mybst-scalability} shows the scalability of the \size{} operation as the number of size threads increases from 1 to 64, while keeping 32 workload threads constant.
+
+\begin{figure*}[!ht]
+	\centering
+	\medskip
+	\textit{Read heavy}\quad\quad\quad
+	\includegraphics[height=.02\textwidth]{BST/legend_scalability.png}\quad\quad\quad
+	\textit{Update heavy}\par
+	\medskip
+	\includegraphics[width=.45\textwidth]{BST/scalability_sizeThreads_1000000setSize_3ins-2rem_32workloadThreads_0delay.png}\hspace{2.5em}
+	\includegraphics[width=.45\textwidth]{BST/scalability_sizeThreads_1000000setSize_30ins-20rem_32workloadThreads_0delay.png}\par
+	\caption{Size query scalability with 32 workload threads}
+	\label{fig:mybst-scalability}
+\end{figure*}
+
+
+
+\end{document}

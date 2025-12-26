@@ -1,0 +1,2878 @@
+==========================================
+Rank/Select Benchmark - MyBSTnext vs Baseline
+==========================================
+
+This benchmark tests rank() and select() aggregate queries
+instead of size() as in the original paper.
+
+Test configurations:
+  - Update-heavy: 30% insert, 20% delete, 50% contains
+  - Read-heavy: 3% insert, 2% delete, 95% contains
+  - Initial size: 1,000,000
+  - Workload threads: [1, 4, 8, 16, 32, 64]
+  - Query threads: [0, 1] for overhead tests
+  - Query threads: [1, 4, 8, 16, 32] for scalability tests
+  - Delay: 0 and 700 microseconds (like Handshake paper)
+==========================================
+
+[1/8] Running update-heavy overhead test (0 query threads)...
+Running MyBSTnext-1workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...ERROR: expected_size=999454 does not match set.size()=999453
+............
+Running MyBSTnext-4workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running MyBSTnext-8workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running MyBSTnext-16workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............ERROR: expected_size=999510 does not match set.size()=999509
+
+Running MyBSTnext-32workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running MyBSTnext-64workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+.......ERROR: expected_size=1000250 does not match set.size()=1000249
+........
+Running MyBSTBaseline-1workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833135746780 does not match dsKeysum=0
+.ERROR: threadsKeysum=833698957289 does not match dsKeysum=0
+.ERROR: threadsKeysum=833676810370 does not match dsKeysum=0
+.ERROR: threadsKeysum=832987144766 does not match dsKeysum=0
+.ERROR: threadsKeysum=832943438878 does not match dsKeysum=0
+.ERROR: threadsKeysum=834800626485 does not match dsKeysum=0
+.ERROR: threadsKeysum=833227343911 does not match dsKeysum=0
+.ERROR: threadsKeysum=833764290844 does not match dsKeysum=0
+.ERROR: threadsKeysum=833126200136 does not match dsKeysum=0
+.ERROR: threadsKeysum=832853364634 does not match dsKeysum=0
+.ERROR: threadsKeysum=833320277584 does not match dsKeysum=0
+.ERROR: threadsKeysum=833235721450 does not match dsKeysum=0
+.ERROR: threadsKeysum=833826020887 does not match dsKeysum=0
+.ERROR: threadsKeysum=833285129179 does not match dsKeysum=0
+.ERROR: threadsKeysum=833265703314 does not match dsKeysum=0
+
+Running MyBSTBaseline-4workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833639786577 does not match dsKeysum=0
+.ERROR: threadsKeysum=834122360515 does not match dsKeysum=0
+.ERROR: threadsKeysum=833010545321 does not match dsKeysum=0
+.ERROR: threadsKeysum=832680585642 does not match dsKeysum=0
+.ERROR: threadsKeysum=833831738153 does not match dsKeysum=0
+.ERROR: threadsKeysum=833534021010 does not match dsKeysum=0
+.ERROR: threadsKeysum=833598737923 does not match dsKeysum=0
+.ERROR: threadsKeysum=832043662714 does not match dsKeysum=0
+.ERROR: threadsKeysum=833412092657 does not match dsKeysum=0
+.ERROR: threadsKeysum=833304200927 does not match dsKeysum=0
+.ERROR: threadsKeysum=833795864910 does not match dsKeysum=0
+.ERROR: threadsKeysum=833071999906 does not match dsKeysum=0
+.ERROR: threadsKeysum=832868340839 does not match dsKeysum=0
+.ERROR: threadsKeysum=833758461465 does not match dsKeysum=0
+.ERROR: threadsKeysum=832648411760 does not match dsKeysum=0
+
+Running MyBSTBaseline-8workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833744770446 does not match dsKeysum=0
+.ERROR: threadsKeysum=832672348121 does not match dsKeysum=0
+.ERROR: threadsKeysum=832642175158 does not match dsKeysum=0
+.ERROR: threadsKeysum=832478123278 does not match dsKeysum=0
+.ERROR: threadsKeysum=833580494580 does not match dsKeysum=0
+.ERROR: threadsKeysum=832460338492 does not match dsKeysum=0
+.ERROR: threadsKeysum=833700031321 does not match dsKeysum=0
+.ERROR: threadsKeysum=832005428045 does not match dsKeysum=0
+.ERROR: threadsKeysum=833108352860 does not match dsKeysum=0
+.ERROR: threadsKeysum=832967934170 does not match dsKeysum=0
+.ERROR: threadsKeysum=832982334898 does not match dsKeysum=0
+.ERROR: threadsKeysum=833188571189 does not match dsKeysum=0
+.ERROR: threadsKeysum=833543392442 does not match dsKeysum=0
+.ERROR: threadsKeysum=832730311044 does not match dsKeysum=0
+.ERROR: threadsKeysum=833222191676 does not match dsKeysum=0
+
+Running MyBSTBaseline-16workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=834355710384 does not match dsKeysum=0
+.ERROR: threadsKeysum=832955835216 does not match dsKeysum=0
+.ERROR: threadsKeysum=834459595311 does not match dsKeysum=0
+.ERROR: threadsKeysum=833036295432 does not match dsKeysum=0
+.ERROR: threadsKeysum=832630104088 does not match dsKeysum=0
+.ERROR: threadsKeysum=832687148356 does not match dsKeysum=0
+.ERROR: threadsKeysum=833613365732 does not match dsKeysum=0
+.ERROR: threadsKeysum=833826901778 does not match dsKeysum=0
+.ERROR: threadsKeysum=833469494515 does not match dsKeysum=0
+.ERROR: threadsKeysum=834068633485 does not match dsKeysum=0
+.ERROR: threadsKeysum=831896315562 does not match dsKeysum=0
+.ERROR: threadsKeysum=833779426975 does not match dsKeysum=0
+.ERROR: threadsKeysum=834691825475 does not match dsKeysum=0
+.ERROR: threadsKeysum=834530103907 does not match dsKeysum=0
+.ERROR: threadsKeysum=834329894788 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=834249235687 does not match dsKeysum=0
+.ERROR: threadsKeysum=833543939167 does not match dsKeysum=0
+.ERROR: threadsKeysum=833290326753 does not match dsKeysum=0
+.ERROR: threadsKeysum=833658524532 does not match dsKeysum=0
+.ERROR: threadsKeysum=833462435192 does not match dsKeysum=0
+.ERROR: threadsKeysum=832273582165 does not match dsKeysum=0
+.ERROR: threadsKeysum=833719431846 does not match dsKeysum=0
+.ERROR: threadsKeysum=833833235001 does not match dsKeysum=0
+.ERROR: threadsKeysum=832641254493 does not match dsKeysum=0
+.ERROR: threadsKeysum=833677580881 does not match dsKeysum=0
+.ERROR: threadsKeysum=833701854276 does not match dsKeysum=0
+.ERROR: threadsKeysum=832441972331 does not match dsKeysum=0
+.ERROR: threadsKeysum=832631223769 does not match dsKeysum=0
+.ERROR: threadsKeysum=833897268702 does not match dsKeysum=0
+.ERROR: threadsKeysum=832980270418 does not match dsKeysum=0
+
+Running MyBSTBaseline-64workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833834993975 does not match dsKeysum=0
+.ERROR: threadsKeysum=833389935211 does not match dsKeysum=0
+.ERROR: threadsKeysum=833758435979 does not match dsKeysum=0
+.ERROR: threadsKeysum=833645203678 does not match dsKeysum=0
+.ERROR: threadsKeysum=832993317024 does not match dsKeysum=0
+.ERROR: threadsKeysum=833025707989 does not match dsKeysum=0
+.ERROR: threadsKeysum=834361268677 does not match dsKeysum=0
+.ERROR: threadsKeysum=834276702544 does not match dsKeysum=0
+.ERROR: threadsKeysum=833818643906 does not match dsKeysum=0
+.ERROR: threadsKeysum=833860979810 does not match dsKeysum=0
+.ERROR: threadsKeysum=833687846281 does not match dsKeysum=0
+.ERROR: threadsKeysum=833379941455 does not match dsKeysum=0
+.ERROR: threadsKeysum=834718920797 does not match dsKeysum=0
+.ERROR: threadsKeysum=832810247230 does not match dsKeysum=0
+.ERROR: threadsKeysum=833169010697 does not match dsKeysum=0
+
+Running BST-1workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-4workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-8workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-16workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-32workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-64workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+[2/8] Running update-heavy overhead test (1 query thread, delay 0)...
+Running MyBSTnext-1workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000182 does not match set.size()=1000061
+.ERROR: expected_size=1000826 does not match set.size()=999510
+.ERROR: expected_size=1000707 does not match set.size()=1000345
+.ERROR: expected_size=999741 does not match set.size()=1001042
+.ERROR: expected_size=999912 does not match set.size()=1001223
+.ERROR: expected_size=999499 does not match set.size()=1000334
+.ERROR: expected_size=1000490 does not match set.size()=1003592
+.ERROR: expected_size=999594 does not match set.size()=1000650
+.ERROR: expected_size=999951 does not match set.size()=1000896
+.ERROR: expected_size=1000160 does not match set.size()=999869
+.ERROR: expected_size=1000963 does not match set.size()=1000894
+.ERROR: expected_size=1000163 does not match set.size()=1000953
+.ERROR: expected_size=1000427 does not match set.size()=1000831
+.ERROR: expected_size=1001037 does not match set.size()=1000700
+.ERROR: expected_size=999546 does not match set.size()=1000554
+
+Running MyBSTnext-3workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=999633 does not match set.size()=999652
+.ERROR: expected_size=999066 does not match set.size()=1000057
+.ERROR: expected_size=999813 does not match set.size()=1002793
+.ERROR: expected_size=1000252 does not match set.size()=1005657
+.ERROR: expected_size=999550 does not match set.size()=1005437
+.ERROR: expected_size=1000616 does not match set.size()=1004219
+.ERROR: expected_size=1001512 does not match set.size()=1004908
+.ERROR: expected_size=999891 does not match set.size()=1005512
+.ERROR: expected_size=1000177 does not match set.size()=1004607
+.ERROR: expected_size=999844 does not match set.size()=1003249
+.ERROR: expected_size=999509 does not match set.size()=1004595
+.ERROR: expected_size=1000183 does not match set.size()=1004185
+.ERROR: expected_size=999941 does not match set.size()=1004258
+.ERROR: expected_size=1000022 does not match set.size()=1003570
+.ERROR: expected_size=1000395 does not match set.size()=1004038
+
+Running MyBSTnext-7workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000531 does not match set.size()=999456
+.ERROR: expected_size=1001018 does not match set.size()=1000537
+.ERROR: expected_size=1001137 does not match set.size()=1003285
+.ERROR: expected_size=1000283 does not match set.size()=1007792
+.ERROR: expected_size=1000463 does not match set.size()=1009435
+.ERROR: expected_size=1000293 does not match set.size()=1008678
+.ERROR: expected_size=999615 does not match set.size()=1010723
+.ERROR: expected_size=1000987 does not match set.size()=1010650
+.ERROR: expected_size=1000040 does not match set.size()=1009811
+.ERROR: expected_size=1000253 does not match set.size()=1008139
+.ERROR: expected_size=998898 does not match set.size()=1010794
+.ERROR: expected_size=998948 does not match set.size()=1007372
+.ERROR: expected_size=999522 does not match set.size()=1009852
+.ERROR: expected_size=998866 does not match set.size()=1008367
+.ERROR: expected_size=1001503 does not match set.size()=1010508
+
+Running MyBSTnext-15workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000308 does not match set.size()=1000046
+.ERROR: expected_size=1000003 does not match set.size()=999808
+.ERROR: expected_size=1000188 does not match set.size()=1007098
+.ERROR: expected_size=1000695 does not match set.size()=1011883
+.ERROR: expected_size=1000105 does not match set.size()=1014297
+.ERROR: expected_size=1001121 does not match set.size()=1012211
+.ERROR: expected_size=1000835 does not match set.size()=1011766
+.ERROR: expected_size=1000101 does not match set.size()=1012771
+.ERROR: expected_size=999562 does not match set.size()=1011878
+.ERROR: expected_size=1000309 does not match set.size()=1011374
+.ERROR: expected_size=999465 does not match set.size()=1008088
+.ERROR: expected_size=1000750 does not match set.size()=1014245
+.ERROR: expected_size=1000387 does not match set.size()=1014073
+.ERROR: expected_size=999633 does not match set.size()=1013888
+.ERROR: expected_size=999807 does not match set.size()=1013141
+
+Running MyBSTnext-31workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000109 does not match set.size()=999917
+.ERROR: expected_size=999730 does not match set.size()=1000049
+.ERROR: expected_size=1000721 does not match set.size()=1004660
+.ERROR: expected_size=999601 does not match set.size()=1005909
+.ERROR: expected_size=999745 does not match set.size()=1008610
+.ERROR: expected_size=999524 does not match set.size()=1007190
+.ERROR: expected_size=1000138 does not match set.size()=1007715
+.ERROR: expected_size=1000247 does not match set.size()=1004871
+.ERROR: expected_size=1001216 does not match set.size()=1006916
+.ERROR: expected_size=1000246 does not match set.size()=1007572
+.ERROR: expected_size=1000149 does not match set.size()=1007464
+.ERROR: expected_size=1000580 does not match set.size()=1006520
+.ERROR: expected_size=999319 does not match set.size()=1005760
+.ERROR: expected_size=1001107 does not match set.size()=1006115
+.ERROR: expected_size=999873 does not match set.size()=1007155
+
+Running MyBSTnext-63workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1001564 does not match set.size()=1000147
+.ERROR: expected_size=1001137 does not match set.size()=1000224
+.ERROR: expected_size=1001002 does not match set.size()=1004856
+.ERROR: expected_size=1000912 does not match set.size()=1005215
+.ERROR: expected_size=998603 does not match set.size()=1003272
+.ERROR: expected_size=999407 does not match set.size()=1007288
+.ERROR: expected_size=1000694 does not match set.size()=1004428
+.ERROR: expected_size=999645 does not match set.size()=1003840
+.ERROR: expected_size=999803 does not match set.size()=1003658
+.ERROR: expected_size=998987 does not match set.size()=1003976
+.ERROR: expected_size=999865 does not match set.size()=1004188
+.ERROR: expected_size=998953 does not match set.size()=1001857
+.ERROR: expected_size=999954 does not match set.size()=1004618
+.ERROR: expected_size=1000506 does not match set.size()=1002954
+.ERROR: expected_size=1000553 does not match set.size()=1004486
+
+Running MyBSTBaseline-1workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=830211390681 does not match dsKeysum=0
+.ERROR: threadsKeysum=832858386214 does not match dsKeysum=0
+.ERROR: threadsKeysum=832995275834 does not match dsKeysum=0
+.ERROR: threadsKeysum=833409043854 does not match dsKeysum=0
+.ERROR: threadsKeysum=834595620147 does not match dsKeysum=0
+.ERROR: threadsKeysum=833336824593 does not match dsKeysum=0
+.ERROR: threadsKeysum=832813433099 does not match dsKeysum=0
+.ERROR: threadsKeysum=832641744090 does not match dsKeysum=0
+.ERROR: threadsKeysum=833105579744 does not match dsKeysum=0
+.ERROR: threadsKeysum=833939570874 does not match dsKeysum=0
+.ERROR: threadsKeysum=832949939140 does not match dsKeysum=0
+.ERROR: threadsKeysum=832885786052 does not match dsKeysum=0
+.ERROR: threadsKeysum=832943908204 does not match dsKeysum=0
+.ERROR: threadsKeysum=832658581004 does not match dsKeysum=0
+.ERROR: threadsKeysum=833345731683 does not match dsKeysum=0
+
+Running MyBSTBaseline-3workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833550011356 does not match dsKeysum=0
+.ERROR: threadsKeysum=832153672045 does not match dsKeysum=0
+.ERROR: threadsKeysum=834902004630 does not match dsKeysum=0
+.ERROR: threadsKeysum=832700650808 does not match dsKeysum=0
+.ERROR: threadsKeysum=832686182664 does not match dsKeysum=0
+.ERROR: threadsKeysum=834126872797 does not match dsKeysum=0
+.ERROR: threadsKeysum=834046448878 does not match dsKeysum=0
+.ERROR: threadsKeysum=830750153393 does not match dsKeysum=0
+.ERROR: threadsKeysum=833148043871 does not match dsKeysum=0
+.ERROR: threadsKeysum=834009628372 does not match dsKeysum=0
+.ERROR: threadsKeysum=833422093401 does not match dsKeysum=0
+.ERROR: threadsKeysum=832587652040 does not match dsKeysum=0
+.ERROR: threadsKeysum=833496259307 does not match dsKeysum=0
+.ERROR: threadsKeysum=832111495833 does not match dsKeysum=0
+.ERROR: threadsKeysum=833652106420 does not match dsKeysum=0
+
+Running MyBSTBaseline-7workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=834226141617 does not match dsKeysum=0
+.ERROR: threadsKeysum=833323620879 does not match dsKeysum=0
+.ERROR: threadsKeysum=833547561277 does not match dsKeysum=0
+.ERROR: threadsKeysum=833483466460 does not match dsKeysum=0
+.ERROR: threadsKeysum=832615893497 does not match dsKeysum=0
+.ERROR: threadsKeysum=832904453387 does not match dsKeysum=0
+.ERROR: threadsKeysum=833536076127 does not match dsKeysum=0
+.ERROR: threadsKeysum=834341504947 does not match dsKeysum=0
+.ERROR: threadsKeysum=832497631701 does not match dsKeysum=0
+.ERROR: threadsKeysum=833218885254 does not match dsKeysum=0
+.ERROR: threadsKeysum=832736699655 does not match dsKeysum=0
+.ERROR: threadsKeysum=834652854462 does not match dsKeysum=0
+.ERROR: threadsKeysum=832151675702 does not match dsKeysum=0
+.ERROR: threadsKeysum=834095838465 does not match dsKeysum=0
+.ERROR: threadsKeysum=832058842026 does not match dsKeysum=0
+
+Running MyBSTBaseline-15workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=832722271762 does not match dsKeysum=0
+.ERROR: threadsKeysum=832287953048 does not match dsKeysum=0
+.ERROR: threadsKeysum=832724443938 does not match dsKeysum=0
+.ERROR: threadsKeysum=833337498276 does not match dsKeysum=0
+.ERROR: threadsKeysum=832634163862 does not match dsKeysum=0
+.ERROR: threadsKeysum=833111694431 does not match dsKeysum=0
+.ERROR: threadsKeysum=833891549097 does not match dsKeysum=0
+.ERROR: threadsKeysum=833229691021 does not match dsKeysum=0
+.ERROR: threadsKeysum=833955155853 does not match dsKeysum=0
+.ERROR: threadsKeysum=833914852354 does not match dsKeysum=0
+.ERROR: threadsKeysum=832872945933 does not match dsKeysum=0
+.ERROR: threadsKeysum=834379516241 does not match dsKeysum=0
+.ERROR: threadsKeysum=834097935422 does not match dsKeysum=0
+.ERROR: threadsKeysum=832340875107 does not match dsKeysum=0
+.ERROR: threadsKeysum=834048679303 does not match dsKeysum=0
+
+Running MyBSTBaseline-31workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833453981399 does not match dsKeysum=0
+.ERROR: threadsKeysum=833514200788 does not match dsKeysum=0
+.ERROR: threadsKeysum=832523929805 does not match dsKeysum=0
+.ERROR: threadsKeysum=833291922150 does not match dsKeysum=0
+.ERROR: threadsKeysum=833493083004 does not match dsKeysum=0
+.ERROR: threadsKeysum=832065969058 does not match dsKeysum=0
+.ERROR: threadsKeysum=833145419529 does not match dsKeysum=0
+.ERROR: threadsKeysum=832947262314 does not match dsKeysum=0
+.ERROR: threadsKeysum=833120416145 does not match dsKeysum=0
+.ERROR: threadsKeysum=834301506749 does not match dsKeysum=0
+.ERROR: threadsKeysum=834020326078 does not match dsKeysum=0
+.ERROR: threadsKeysum=832821165513 does not match dsKeysum=0
+.ERROR: threadsKeysum=833840282267 does not match dsKeysum=0
+.ERROR: threadsKeysum=832958025589 does not match dsKeysum=0
+.ERROR: threadsKeysum=831009630910 does not match dsKeysum=0
+
+Running MyBSTBaseline-63workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=832342974204 does not match dsKeysum=0
+.ERROR: threadsKeysum=832910323329 does not match dsKeysum=0
+.ERROR: threadsKeysum=832863425556 does not match dsKeysum=0
+.ERROR: threadsKeysum=833857644689 does not match dsKeysum=0
+.ERROR: threadsKeysum=833009170289 does not match dsKeysum=0
+.ERROR: threadsKeysum=831539043154 does not match dsKeysum=0
+.ERROR: threadsKeysum=833077127499 does not match dsKeysum=0
+.ERROR: threadsKeysum=833387620390 does not match dsKeysum=0
+.ERROR: threadsKeysum=833663924481 does not match dsKeysum=0
+.ERROR: threadsKeysum=832566816763 does not match dsKeysum=0
+.ERROR: threadsKeysum=832814058731 does not match dsKeysum=0
+.ERROR: threadsKeysum=833258772611 does not match dsKeysum=0
+.ERROR: threadsKeysum=833417959502 does not match dsKeysum=0
+.ERROR: threadsKeysum=834660825790 does not match dsKeysum=0
+.ERROR: threadsKeysum=833311686653 does not match dsKeysum=0
+
+Running BST-1workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-3workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-7workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-15workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-31workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-63workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+[3/8] Running read-heavy overhead test (0 query threads)...
+Running MyBSTnext-1workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+..............ERROR: expected_size=999899 does not match set.size()=999898
+.
+Running MyBSTnext-4workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running MyBSTnext-8workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running MyBSTnext-16workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running MyBSTnext-32workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running MyBSTnext-64workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running MyBSTBaseline-1workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833453345511 does not match dsKeysum=0
+.ERROR: threadsKeysum=833049398783 does not match dsKeysum=0
+.ERROR: threadsKeysum=833256325642 does not match dsKeysum=0
+.ERROR: threadsKeysum=833311409311 does not match dsKeysum=0
+.ERROR: threadsKeysum=833187048348 does not match dsKeysum=0
+.ERROR: threadsKeysum=833799576820 does not match dsKeysum=0
+.ERROR: threadsKeysum=834057661290 does not match dsKeysum=0
+.ERROR: threadsKeysum=832778898775 does not match dsKeysum=0
+.ERROR: threadsKeysum=833453719525 does not match dsKeysum=0
+.ERROR: threadsKeysum=833251807425 does not match dsKeysum=0
+.ERROR: threadsKeysum=833484975151 does not match dsKeysum=0
+.ERROR: threadsKeysum=833067091727 does not match dsKeysum=0
+.ERROR: threadsKeysum=833288410440 does not match dsKeysum=0
+.ERROR: threadsKeysum=832885613129 does not match dsKeysum=0
+.ERROR: threadsKeysum=832853438801 does not match dsKeysum=0
+
+Running MyBSTBaseline-4workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833030520150 does not match dsKeysum=0
+.ERROR: threadsKeysum=833827964038 does not match dsKeysum=0
+.ERROR: threadsKeysum=833453498517 does not match dsKeysum=0
+.ERROR: threadsKeysum=833366743575 does not match dsKeysum=0
+.ERROR: threadsKeysum=834189086247 does not match dsKeysum=0
+.ERROR: threadsKeysum=832968746903 does not match dsKeysum=0
+.ERROR: threadsKeysum=833610556229 does not match dsKeysum=0
+.ERROR: threadsKeysum=833321053078 does not match dsKeysum=0
+.ERROR: threadsKeysum=833310026879 does not match dsKeysum=0
+.ERROR: threadsKeysum=833500475053 does not match dsKeysum=0
+.ERROR: threadsKeysum=833051342488 does not match dsKeysum=0
+.ERROR: threadsKeysum=832853500622 does not match dsKeysum=0
+.ERROR: threadsKeysum=833861332448 does not match dsKeysum=0
+.ERROR: threadsKeysum=833497405311 does not match dsKeysum=0
+.ERROR: threadsKeysum=832797810218 does not match dsKeysum=0
+
+Running MyBSTBaseline-8workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833412736191 does not match dsKeysum=0
+.ERROR: threadsKeysum=833406020212 does not match dsKeysum=0
+.ERROR: threadsKeysum=833063848896 does not match dsKeysum=0
+.ERROR: threadsKeysum=833407084694 does not match dsKeysum=0
+.ERROR: threadsKeysum=833732839541 does not match dsKeysum=0
+.ERROR: threadsKeysum=833180272332 does not match dsKeysum=0
+.ERROR: threadsKeysum=833234476209 does not match dsKeysum=0
+.ERROR: threadsKeysum=833975803689 does not match dsKeysum=0
+.ERROR: threadsKeysum=833877162541 does not match dsKeysum=0
+.ERROR: threadsKeysum=832495211087 does not match dsKeysum=0
+.ERROR: threadsKeysum=833254785300 does not match dsKeysum=0
+.ERROR: threadsKeysum=833396662462 does not match dsKeysum=0
+.ERROR: threadsKeysum=832639882523 does not match dsKeysum=0
+.ERROR: threadsKeysum=833636651265 does not match dsKeysum=0
+.ERROR: threadsKeysum=833368057768 does not match dsKeysum=0
+
+Running MyBSTBaseline-16workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833637445359 does not match dsKeysum=0
+.ERROR: threadsKeysum=834367845651 does not match dsKeysum=0
+.ERROR: threadsKeysum=832280307901 does not match dsKeysum=0
+.ERROR: threadsKeysum=832070939978 does not match dsKeysum=0
+.ERROR: threadsKeysum=833793530710 does not match dsKeysum=0
+.ERROR: threadsKeysum=834432513592 does not match dsKeysum=0
+.ERROR: threadsKeysum=832546017972 does not match dsKeysum=0
+.ERROR: threadsKeysum=833020546118 does not match dsKeysum=0
+.ERROR: threadsKeysum=833585568966 does not match dsKeysum=0
+.ERROR: threadsKeysum=833947963778 does not match dsKeysum=0
+.ERROR: threadsKeysum=832935483949 does not match dsKeysum=0
+.ERROR: threadsKeysum=833842096431 does not match dsKeysum=0
+.ERROR: threadsKeysum=834122349301 does not match dsKeysum=0
+.ERROR: threadsKeysum=832570798511 does not match dsKeysum=0
+.ERROR: threadsKeysum=834310043014 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833563605494 does not match dsKeysum=0
+.ERROR: threadsKeysum=834229821825 does not match dsKeysum=0
+.ERROR: threadsKeysum=833445349928 does not match dsKeysum=0
+.ERROR: threadsKeysum=833221296460 does not match dsKeysum=0
+.ERROR: threadsKeysum=832591584623 does not match dsKeysum=0
+.ERROR: threadsKeysum=833877920500 does not match dsKeysum=0
+.ERROR: threadsKeysum=834943028602 does not match dsKeysum=0
+.ERROR: threadsKeysum=834263190862 does not match dsKeysum=0
+.ERROR: threadsKeysum=833638834428 does not match dsKeysum=0
+.ERROR: threadsKeysum=834122204922 does not match dsKeysum=0
+.ERROR: threadsKeysum=832709830855 does not match dsKeysum=0
+.ERROR: threadsKeysum=833351338334 does not match dsKeysum=0
+.ERROR: threadsKeysum=833470986490 does not match dsKeysum=0
+.ERROR: threadsKeysum=833786809284 does not match dsKeysum=0
+.ERROR: threadsKeysum=832334985923 does not match dsKeysum=0
+
+Running MyBSTBaseline-64workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833349320078 does not match dsKeysum=0
+.ERROR: threadsKeysum=833652999760 does not match dsKeysum=0
+.ERROR: threadsKeysum=832820892608 does not match dsKeysum=0
+.ERROR: threadsKeysum=834695909462 does not match dsKeysum=0
+.ERROR: threadsKeysum=832009993369 does not match dsKeysum=0
+.ERROR: threadsKeysum=833243700525 does not match dsKeysum=0
+.ERROR: threadsKeysum=832860816348 does not match dsKeysum=0
+.ERROR: threadsKeysum=833337021392 does not match dsKeysum=0
+.ERROR: threadsKeysum=832821667690 does not match dsKeysum=0
+.ERROR: threadsKeysum=833104369941 does not match dsKeysum=0
+.ERROR: threadsKeysum=834014505177 does not match dsKeysum=0
+.ERROR: threadsKeysum=832363614951 does not match dsKeysum=0
+.ERROR: threadsKeysum=832932877160 does not match dsKeysum=0
+.ERROR: threadsKeysum=833547040256 does not match dsKeysum=0
+.ERROR: threadsKeysum=832761727712 does not match dsKeysum=0
+
+Running BST-1workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-4workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-8workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-16workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-32workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-64workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+[4/8] Running read-heavy overhead test (1 query thread, delay 0)...
+Running MyBSTnext-1workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000321 does not match set.size()=1000044
+.ERROR: expected_size=999872 does not match set.size()=999716
+.ERROR: expected_size=1000208 does not match set.size()=1000639
+.ERROR: expected_size=999886 does not match set.size()=1000897
+.ERROR: expected_size=999777 does not match set.size()=1000910
+.ERROR: expected_size=999839 does not match set.size()=1000245
+.ERROR: expected_size=999981 does not match set.size()=1001361
+.ERROR: expected_size=1000026 does not match set.size()=1000156
+.ERROR: expected_size=999754 does not match set.size()=1000169
+.ERROR: expected_size=1000234 does not match set.size()=1000920
+.ERROR: expected_size=1000129 does not match set.size()=1000912
+.ERROR: expected_size=999804 does not match set.size()=1000978
+.ERROR: expected_size=1000268 does not match set.size()=1000459
+.ERROR: expected_size=999982 does not match set.size()=1001318
+.ERROR: expected_size=999926 does not match set.size()=1000636
+
+Running MyBSTnext-3workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000428 does not match set.size()=999626
+.ERROR: expected_size=999543 does not match set.size()=999464
+.ERROR: expected_size=1000282 does not match set.size()=1001142
+.ERROR: expected_size=999999 does not match set.size()=1001230
+.ERROR: expected_size=999839 does not match set.size()=1001563
+.ERROR: expected_size=1000108 does not match set.size()=1000437
+.ERROR: expected_size=1000515 does not match set.size()=1001392
+.ERROR: expected_size=999602 does not match set.size()=1001853
+.ERROR: expected_size=1000092 does not match set.size()=1001248
+.ERROR: expected_size=1000025 does not match set.size()=1001640
+.ERROR: expected_size=1000175 does not match set.size()=1002244
+.ERROR: expected_size=999875 does not match set.size()=1002816
+.ERROR: expected_size=1000008 does not match set.size()=1000730
+.ERROR: expected_size=999625 does not match set.size()=1000516
+.ERROR: expected_size=999856 does not match set.size()=1000758
+
+Running MyBSTnext-7workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=999616 does not match set.size()=999932
+.ERROR: expected_size=999326 does not match set.size()=999945
+.ERROR: expected_size=1000493 does not match set.size()=1003027
+.ERROR: expected_size=999356 does not match set.size()=1003414
+.ERROR: expected_size=999800 does not match set.size()=1003003
+.ERROR: expected_size=1000928 does not match set.size()=1004043
+.ERROR: expected_size=1000384 does not match set.size()=1003491
+.ERROR: expected_size=1000448 does not match set.size()=1003813
+.ERROR: expected_size=999743 does not match set.size()=1003031
+.ERROR: expected_size=999614 does not match set.size()=1003072
+.ERROR: expected_size=999924 does not match set.size()=1003040
+.ERROR: expected_size=999712 does not match set.size()=1003609
+.ERROR: expected_size=1000807 does not match set.size()=1003363
+.ERROR: expected_size=1000127 does not match set.size()=1003398
+.ERROR: expected_size=1000613 does not match set.size()=1003353
+
+Running MyBSTnext-15workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000068 does not match set.size()=1000158
+.ERROR: expected_size=999355 does not match set.size()=1000201
+.ERROR: expected_size=996676 does not match set.size()=1003213
+.ERROR: expected_size=1000659 does not match set.size()=1003441
+.ERROR: expected_size=999716 does not match set.size()=1004341
+.ERROR: expected_size=1000216 does not match set.size()=1004262
+.ERROR: expected_size=999528 does not match set.size()=1004459
+.ERROR: expected_size=1000230 does not match set.size()=1004748
+.ERROR: expected_size=999853 does not match set.size()=1004640
+.ERROR: expected_size=999694 does not match set.size()=1004006
+.ERROR: expected_size=1000905 does not match set.size()=1004377
+.ERROR: expected_size=999707 does not match set.size()=1004347
+.ERROR: expected_size=1000261 does not match set.size()=1004528
+.ERROR: expected_size=999603 does not match set.size()=1003596
+.ERROR: expected_size=999734 does not match set.size()=1005059
+
+Running MyBSTnext-31workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000322 does not match set.size()=1000044
+.ERROR: expected_size=999868 does not match set.size()=1000158
+.ERROR: expected_size=1000255 does not match set.size()=1001728
+.ERROR: expected_size=1000260 does not match set.size()=1002623
+.ERROR: expected_size=1000520 does not match set.size()=1002087
+.ERROR: expected_size=1000721 does not match set.size()=1002660
+.ERROR: expected_size=1000498 does not match set.size()=1002927
+.ERROR: expected_size=999929 does not match set.size()=1002990
+.ERROR: expected_size=1000384 does not match set.size()=1002214
+.ERROR: expected_size=1000228 does not match set.size()=1002755
+.ERROR: expected_size=999203 does not match set.size()=1002275
+.ERROR: expected_size=999852 does not match set.size()=1002086
+.ERROR: expected_size=1000129 does not match set.size()=1001690
+.ERROR: expected_size=1000293 does not match set.size()=1002752
+.ERROR: expected_size=1000167 does not match set.size()=1002671
+
+Running MyBSTnext-63workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=999886 does not match set.size()=999986
+.ERROR: expected_size=1000600 does not match set.size()=1000433
+.ERROR: expected_size=1000747 does not match set.size()=1001296
+.ERROR: expected_size=1000371 does not match set.size()=1001251
+.ERROR: expected_size=999883 does not match set.size()=1001310
+.ERROR: expected_size=1000076 does not match set.size()=1001322
+.ERROR: expected_size=1000306 does not match set.size()=1001491
+.ERROR: expected_size=1001029 does not match set.size()=1001331
+.ERROR: expected_size=1000416 does not match set.size()=1001884
+.ERROR: expected_size=999480 does not match set.size()=1001078
+.ERROR: expected_size=1000277 does not match set.size()=1001163
+.ERROR: expected_size=999972 does not match set.size()=1000689
+.ERROR: expected_size=999862 does not match set.size()=1001395
+.ERROR: expected_size=1001030 does not match set.size()=1001306
+.ERROR: expected_size=999977 does not match set.size()=1000690
+
+Running MyBSTBaseline-1workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833086796203 does not match dsKeysum=0
+.ERROR: threadsKeysum=833224162576 does not match dsKeysum=0
+.ERROR: threadsKeysum=833489518252 does not match dsKeysum=0
+.ERROR: threadsKeysum=832922560408 does not match dsKeysum=0
+.ERROR: threadsKeysum=833285054890 does not match dsKeysum=0
+.ERROR: threadsKeysum=833774428505 does not match dsKeysum=0
+.ERROR: threadsKeysum=833081004797 does not match dsKeysum=0
+.ERROR: threadsKeysum=833055943562 does not match dsKeysum=0
+.ERROR: threadsKeysum=833369048018 does not match dsKeysum=0
+.ERROR: threadsKeysum=833826018039 does not match dsKeysum=0
+.ERROR: threadsKeysum=833830868503 does not match dsKeysum=0
+.ERROR: threadsKeysum=833452105668 does not match dsKeysum=0
+.ERROR: threadsKeysum=833025057849 does not match dsKeysum=0
+.ERROR: threadsKeysum=833568159371 does not match dsKeysum=0
+.ERROR: threadsKeysum=833435626773 does not match dsKeysum=0
+
+Running MyBSTBaseline-3workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833518968204 does not match dsKeysum=0
+.ERROR: threadsKeysum=833080105745 does not match dsKeysum=0
+.ERROR: threadsKeysum=828720058145 does not match dsKeysum=0
+.ERROR: threadsKeysum=833576477635 does not match dsKeysum=0
+.ERROR: threadsKeysum=832693926862 does not match dsKeysum=0
+.ERROR: threadsKeysum=833600623084 does not match dsKeysum=0
+.ERROR: threadsKeysum=833062546028 does not match dsKeysum=0
+.ERROR: threadsKeysum=833166008192 does not match dsKeysum=0
+.ERROR: threadsKeysum=833451669869 does not match dsKeysum=0
+.ERROR: threadsKeysum=832814951461 does not match dsKeysum=0
+.ERROR: threadsKeysum=833132841264 does not match dsKeysum=0
+.ERROR: threadsKeysum=832770791348 does not match dsKeysum=0
+.ERROR: threadsKeysum=833806653479 does not match dsKeysum=0
+.ERROR: threadsKeysum=833008670943 does not match dsKeysum=0
+.ERROR: threadsKeysum=833539321412 does not match dsKeysum=0
+
+Running MyBSTBaseline-7workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833569979910 does not match dsKeysum=0
+.ERROR: threadsKeysum=833589780160 does not match dsKeysum=0
+.ERROR: threadsKeysum=833180133560 does not match dsKeysum=0
+.ERROR: threadsKeysum=833170739332 does not match dsKeysum=0
+.ERROR: threadsKeysum=833055592080 does not match dsKeysum=0
+.ERROR: threadsKeysum=833872083483 does not match dsKeysum=0
+.ERROR: threadsKeysum=832774748077 does not match dsKeysum=0
+.ERROR: threadsKeysum=832924771690 does not match dsKeysum=0
+.ERROR: threadsKeysum=833481869978 does not match dsKeysum=0
+.ERROR: threadsKeysum=833859196907 does not match dsKeysum=0
+.ERROR: threadsKeysum=833123763087 does not match dsKeysum=0
+.ERROR: threadsKeysum=833009878498 does not match dsKeysum=0
+.ERROR: threadsKeysum=833384817965 does not match dsKeysum=0
+.ERROR: threadsKeysum=833530989215 does not match dsKeysum=0
+.ERROR: threadsKeysum=832308776218 does not match dsKeysum=0
+
+Running MyBSTBaseline-15workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=832791728836 does not match dsKeysum=0
+.ERROR: threadsKeysum=833127659149 does not match dsKeysum=0
+.ERROR: threadsKeysum=833318447900 does not match dsKeysum=0
+.ERROR: threadsKeysum=834254153036 does not match dsKeysum=0
+.ERROR: threadsKeysum=831930758004 does not match dsKeysum=0
+.ERROR: threadsKeysum=833446043598 does not match dsKeysum=0
+.ERROR: threadsKeysum=832146342131 does not match dsKeysum=0
+.ERROR: threadsKeysum=833963255899 does not match dsKeysum=0
+.ERROR: threadsKeysum=833712048886 does not match dsKeysum=0
+.ERROR: threadsKeysum=833011861748 does not match dsKeysum=0
+.ERROR: threadsKeysum=833049467773 does not match dsKeysum=0
+.ERROR: threadsKeysum=831072168230 does not match dsKeysum=0
+.ERROR: threadsKeysum=834404042415 does not match dsKeysum=0
+.ERROR: threadsKeysum=832903136122 does not match dsKeysum=0
+.ERROR: threadsKeysum=833285282037 does not match dsKeysum=0
+
+Running MyBSTBaseline-31workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=832797689791 does not match dsKeysum=0
+.ERROR: threadsKeysum=832244676839 does not match dsKeysum=0
+.ERROR: threadsKeysum=834251186777 does not match dsKeysum=0
+.ERROR: threadsKeysum=833835248959 does not match dsKeysum=0
+.ERROR: threadsKeysum=833311856156 does not match dsKeysum=0
+.ERROR: threadsKeysum=833531815424 does not match dsKeysum=0
+.ERROR: threadsKeysum=832663287409 does not match dsKeysum=0
+.ERROR: threadsKeysum=832047490864 does not match dsKeysum=0
+.ERROR: threadsKeysum=833677964554 does not match dsKeysum=0
+.ERROR: threadsKeysum=832894828715 does not match dsKeysum=0
+.ERROR: threadsKeysum=833973263259 does not match dsKeysum=0
+.ERROR: threadsKeysum=833665482737 does not match dsKeysum=0
+.ERROR: threadsKeysum=833478700176 does not match dsKeysum=0
+.ERROR: threadsKeysum=832003612759 does not match dsKeysum=0
+.ERROR: threadsKeysum=831030710408 does not match dsKeysum=0
+
+Running MyBSTBaseline-63workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=832606893770 does not match dsKeysum=0
+.ERROR: threadsKeysum=834316960264 does not match dsKeysum=0
+.ERROR: threadsKeysum=833941373840 does not match dsKeysum=0
+.ERROR: threadsKeysum=831540196273 does not match dsKeysum=0
+.ERROR: threadsKeysum=832629236504 does not match dsKeysum=0
+.ERROR: threadsKeysum=833466330714 does not match dsKeysum=0
+.ERROR: threadsKeysum=833484344714 does not match dsKeysum=0
+.ERROR: threadsKeysum=833447708099 does not match dsKeysum=0
+.ERROR: threadsKeysum=833734131434 does not match dsKeysum=0
+.ERROR: threadsKeysum=833844569358 does not match dsKeysum=0
+.ERROR: threadsKeysum=832649627437 does not match dsKeysum=0
+.ERROR: threadsKeysum=833828920132 does not match dsKeysum=0
+.ERROR: threadsKeysum=833394007989 does not match dsKeysum=0
+.ERROR: threadsKeysum=833616493510 does not match dsKeysum=0
+.ERROR: threadsKeysum=832720604575 does not match dsKeysum=0
+
+Running BST-1workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-3workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-7workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-15workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-31workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-63workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+[5/8] Running update-heavy overhead test (1 query thread, delay 700µs)...
+Running MyBSTnext-1workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=995474 does not match set.size()=995526
+.ERROR: expected_size=1000550 does not match set.size()=1000490
+.ERROR: expected_size=999841 does not match set.size()=999846
+.ERROR: expected_size=1000299 does not match set.size()=1000285
+.ERROR: expected_size=999672 does not match set.size()=999769
+.ERROR: expected_size=1000546 does not match set.size()=1000543
+.ERROR: expected_size=999196 does not match set.size()=999189
+.ERROR: expected_size=999607 does not match set.size()=999637
+.ERROR: expected_size=999789 does not match set.size()=999759
+.ERROR: expected_size=999848 does not match set.size()=999885
+.ERROR: expected_size=1000676 does not match set.size()=1000684
+.ERROR: expected_size=1001155 does not match set.size()=1001088
+.ERROR: expected_size=999974 does not match set.size()=999954
+.ERROR: expected_size=999991 does not match set.size()=1000056
+.ERROR: expected_size=1000116 does not match set.size()=1000077
+
+Running MyBSTnext-3workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000713 does not match set.size()=1000917
+.ERROR: expected_size=1000852 does not match set.size()=1000795
+.ERROR: expected_size=1000019 does not match set.size()=1000011
+.ERROR: expected_size=1000631 does not match set.size()=1000637
+.ERROR: expected_size=1000798 does not match set.size()=1000713
+.ERROR: expected_size=1001071 does not match set.size()=1000959
+.ERROR: expected_size=999981 does not match set.size()=999831
+.ERROR: expected_size=1000245 does not match set.size()=1000251
+.ERROR: expected_size=999574 does not match set.size()=999641
+.ERROR: expected_size=999636 does not match set.size()=999510
+.ERROR: expected_size=999889 does not match set.size()=999859
+.ERROR: expected_size=999852 does not match set.size()=999779
+.ERROR: expected_size=999308 does not match set.size()=999348
+.ERROR: expected_size=1000370 does not match set.size()=1000245
+.ERROR: expected_size=1000152 does not match set.size()=1000037
+
+Running MyBSTnext-7workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000918 does not match set.size()=1000702
+.ERROR: expected_size=999749 does not match set.size()=999863
+.ERROR: expected_size=999575 does not match set.size()=999661
+.ERROR: expected_size=1000165 does not match set.size()=1000030
+.ERROR: expected_size=999956 does not match set.size()=999881
+.ERROR: expected_size=999580 does not match set.size()=999453
+.ERROR: expected_size=999968 does not match set.size()=999811
+.ERROR: expected_size=998900 does not match set.size()=998959
+.ERROR: expected_size=1000945 does not match set.size()=1000786
+.ERROR: expected_size=999606 does not match set.size()=999511
+.ERROR: expected_size=999404 does not match set.size()=999236
+.ERROR: expected_size=998839 does not match set.size()=998605
+.ERROR: expected_size=999315 does not match set.size()=999299
+.ERROR: expected_size=999735 does not match set.size()=999719
+.ERROR: expected_size=999252 does not match set.size()=999041
+
+Running MyBSTnext-15workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000391 does not match set.size()=1000708
+.ERROR: expected_size=998913 does not match set.size()=998582
+.ERROR: expected_size=1000593 does not match set.size()=1000513
+.ERROR: expected_size=999273 does not match set.size()=999068
+.ERROR: expected_size=1000062 does not match set.size()=999457
+.ERROR: expected_size=1000704 does not match set.size()=1000724
+.ERROR: expected_size=1000308 does not match set.size()=1000088
+.ERROR: expected_size=999972 does not match set.size()=999902
+.ERROR: expected_size=999193 does not match set.size()=999058
+.ERROR: expected_size=999639 does not match set.size()=999371
+.ERROR: expected_size=1000154 does not match set.size()=1000183
+.ERROR: expected_size=1001355 does not match set.size()=1001357
+.ERROR: expected_size=1001534 does not match set.size()=1001467
+.ERROR: expected_size=1000432 does not match set.size()=1000168
+.ERROR: expected_size=999901 does not match set.size()=999749
+
+Running MyBSTnext-31workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=999267 does not match set.size()=999501
+.ERROR: expected_size=999944 does not match set.size()=998890
+.ERROR: expected_size=999694 does not match set.size()=999258
+.ERROR: expected_size=1000534 does not match set.size()=1000507
+.ERROR: expected_size=1000002 does not match set.size()=999798
+.ERROR: expected_size=1000182 does not match set.size()=1000407
+.ERROR: expected_size=1000088 does not match set.size()=999769
+.ERROR: expected_size=1000449 does not match set.size()=1000336
+.ERROR: expected_size=1000227 does not match set.size()=1000096
+.ERROR: expected_size=1000493 does not match set.size()=1000199
+.ERROR: expected_size=1000861 does not match set.size()=1000510
+.ERROR: expected_size=999599 does not match set.size()=999178
+.ERROR: expected_size=999784 does not match set.size()=999318
+.ERROR: expected_size=1000053 does not match set.size()=999545
+.ERROR: expected_size=999926 does not match set.size()=999538
+
+Running MyBSTnext-63workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000096 does not match set.size()=999671
+.ERROR: expected_size=1000330 does not match set.size()=999782
+.ERROR: expected_size=1000402 does not match set.size()=998505
+.ERROR: expected_size=1000208 does not match set.size()=1000338
+.ERROR: expected_size=1001150 does not match set.size()=1000069
+.ERROR: expected_size=999589 does not match set.size()=998753
+.ERROR: expected_size=999609 does not match set.size()=998308
+.ERROR: expected_size=999778 does not match set.size()=999083
+.ERROR: expected_size=1000707 does not match set.size()=999937
+.ERROR: expected_size=1000224 does not match set.size()=999774
+.ERROR: expected_size=999986 does not match set.size()=998827
+.ERROR: expected_size=1000625 does not match set.size()=999939
+.ERROR: expected_size=999493 does not match set.size()=998813
+.ERROR: expected_size=999806 does not match set.size()=999288
+.ERROR: expected_size=1000446 does not match set.size()=999561
+
+Running MyBSTBaseline-1workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833339224173 does not match dsKeysum=0
+.ERROR: threadsKeysum=833092411366 does not match dsKeysum=0
+.ERROR: threadsKeysum=832919777319 does not match dsKeysum=0
+.ERROR: threadsKeysum=832931462190 does not match dsKeysum=0
+.ERROR: threadsKeysum=833520657496 does not match dsKeysum=0
+.ERROR: threadsKeysum=833195179071 does not match dsKeysum=0
+.ERROR: threadsKeysum=833512750610 does not match dsKeysum=0
+.ERROR: threadsKeysum=834075499285 does not match dsKeysum=0
+.ERROR: threadsKeysum=834285137110 does not match dsKeysum=0
+.ERROR: threadsKeysum=832197835791 does not match dsKeysum=0
+.ERROR: threadsKeysum=833845671353 does not match dsKeysum=0
+.ERROR: threadsKeysum=833239140667 does not match dsKeysum=0
+.ERROR: threadsKeysum=833562761326 does not match dsKeysum=0
+.ERROR: threadsKeysum=833358070453 does not match dsKeysum=0
+.ERROR: threadsKeysum=833289096690 does not match dsKeysum=0
+
+Running MyBSTBaseline-3workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=832476056123 does not match dsKeysum=0
+.ERROR: threadsKeysum=833996001504 does not match dsKeysum=0
+.ERROR: threadsKeysum=832865853001 does not match dsKeysum=0
+.ERROR: threadsKeysum=832826286029 does not match dsKeysum=0
+.ERROR: threadsKeysum=832954086902 does not match dsKeysum=0
+.ERROR: threadsKeysum=832829542620 does not match dsKeysum=0
+.ERROR: threadsKeysum=833008155579 does not match dsKeysum=0
+.ERROR: threadsKeysum=834520506001 does not match dsKeysum=0
+.ERROR: threadsKeysum=833710543689 does not match dsKeysum=0
+.ERROR: threadsKeysum=834177491349 does not match dsKeysum=0
+.ERROR: threadsKeysum=833887739662 does not match dsKeysum=0
+.ERROR: threadsKeysum=834007096838 does not match dsKeysum=0
+.ERROR: threadsKeysum=834110074791 does not match dsKeysum=0
+.ERROR: threadsKeysum=833633851602 does not match dsKeysum=0
+.ERROR: threadsKeysum=834488995839 does not match dsKeysum=0
+
+Running MyBSTBaseline-7workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833864969187 does not match dsKeysum=0
+.ERROR: threadsKeysum=833463269074 does not match dsKeysum=0
+.ERROR: threadsKeysum=833486771595 does not match dsKeysum=0
+.ERROR: threadsKeysum=833272291103 does not match dsKeysum=0
+.ERROR: threadsKeysum=833873554764 does not match dsKeysum=0
+.ERROR: threadsKeysum=832839776810 does not match dsKeysum=0
+.ERROR: threadsKeysum=833136258783 does not match dsKeysum=0
+.ERROR: threadsKeysum=832981360356 does not match dsKeysum=0
+.ERROR: threadsKeysum=833165699202 does not match dsKeysum=0
+.ERROR: threadsKeysum=833134349439 does not match dsKeysum=0
+.ERROR: threadsKeysum=832929484993 does not match dsKeysum=0
+.ERROR: threadsKeysum=832688884422 does not match dsKeysum=0
+.ERROR: threadsKeysum=833338286854 does not match dsKeysum=0
+.ERROR: threadsKeysum=833464530704 does not match dsKeysum=0
+.ERROR: threadsKeysum=834249422945 does not match dsKeysum=0
+
+Running MyBSTBaseline-15workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833789863998 does not match dsKeysum=0
+.ERROR: threadsKeysum=833113600689 does not match dsKeysum=0
+.ERROR: threadsKeysum=833694560626 does not match dsKeysum=0
+.ERROR: threadsKeysum=832939494975 does not match dsKeysum=0
+.ERROR: threadsKeysum=833040259077 does not match dsKeysum=0
+.ERROR: threadsKeysum=832992911677 does not match dsKeysum=0
+.ERROR: threadsKeysum=833244792326 does not match dsKeysum=0
+.ERROR: threadsKeysum=833443543298 does not match dsKeysum=0
+.ERROR: threadsKeysum=832329129648 does not match dsKeysum=0
+.ERROR: threadsKeysum=833390757582 does not match dsKeysum=0
+.ERROR: threadsKeysum=834274099678 does not match dsKeysum=0
+.ERROR: threadsKeysum=832354976938 does not match dsKeysum=0
+.ERROR: threadsKeysum=832854640210 does not match dsKeysum=0
+.ERROR: threadsKeysum=832699207989 does not match dsKeysum=0
+.ERROR: threadsKeysum=833981194269 does not match dsKeysum=0
+
+Running MyBSTBaseline-31workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=832711037385 does not match dsKeysum=0
+.ERROR: threadsKeysum=833927437381 does not match dsKeysum=0
+.ERROR: threadsKeysum=832402966159 does not match dsKeysum=0
+.ERROR: threadsKeysum=832766034373 does not match dsKeysum=0
+.ERROR: threadsKeysum=833762006754 does not match dsKeysum=0
+.ERROR: threadsKeysum=832378384165 does not match dsKeysum=0
+.ERROR: threadsKeysum=831963005807 does not match dsKeysum=0
+.ERROR: threadsKeysum=832285756389 does not match dsKeysum=0
+.ERROR: threadsKeysum=834319382010 does not match dsKeysum=0
+.ERROR: threadsKeysum=833009252282 does not match dsKeysum=0
+.ERROR: threadsKeysum=833184129308 does not match dsKeysum=0
+.ERROR: threadsKeysum=833644275190 does not match dsKeysum=0
+.ERROR: threadsKeysum=833744876977 does not match dsKeysum=0
+.ERROR: threadsKeysum=831408239053 does not match dsKeysum=0
+.ERROR: threadsKeysum=833126411792 does not match dsKeysum=0
+
+Running MyBSTBaseline-63workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833332351386 does not match dsKeysum=0
+.ERROR: threadsKeysum=834499006241 does not match dsKeysum=0
+.ERROR: threadsKeysum=834054699925 does not match dsKeysum=0
+.ERROR: threadsKeysum=833498777117 does not match dsKeysum=0
+.ERROR: threadsKeysum=834151566402 does not match dsKeysum=0
+.ERROR: threadsKeysum=832107447539 does not match dsKeysum=0
+.ERROR: threadsKeysum=833043537805 does not match dsKeysum=0
+.ERROR: threadsKeysum=832110472116 does not match dsKeysum=0
+.ERROR: threadsKeysum=833453096665 does not match dsKeysum=0
+.ERROR: threadsKeysum=833478923377 does not match dsKeysum=0
+.ERROR: threadsKeysum=832538882848 does not match dsKeysum=0
+.ERROR: threadsKeysum=832776588127 does not match dsKeysum=0
+.ERROR: threadsKeysum=833697443107 does not match dsKeysum=0
+.ERROR: threadsKeysum=832782302631 does not match dsKeysum=0
+.ERROR: threadsKeysum=832981686655 does not match dsKeysum=0
+
+Running BST-1workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-3workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-7workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-15workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-31workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+Running BST-63workloadThreads-0sizeThreads-1000000setSize-30i-20d-50f
+...............
+[6/8] Running read-heavy overhead test (1 query thread, delay 700µs)...
+Running MyBSTnext-1workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000119 does not match set.size()=1000116
+.ERROR: expected_size=1000079 does not match set.size()=1000095
+.ERROR: expected_size=1000075 does not match set.size()=1000127
+.ERROR: expected_size=1000255 does not match set.size()=1000276
+.ERROR: expected_size=1000435 does not match set.size()=1000431
+.ERROR: expected_size=1000050 does not match set.size()=1000111
+.ERROR: expected_size=1000029 does not match set.size()=1000069
+.ERROR: expected_size=1000158 does not match set.size()=1000152
+.ERROR: expected_size=1000015 does not match set.size()=1000011
+.ERROR: expected_size=1000263 does not match set.size()=1000290
+.ERROR: expected_size=999831 does not match set.size()=999887
+.ERROR: expected_size=1000296 does not match set.size()=1000286
+.ERROR: expected_size=999488 does not match set.size()=999540
+.ERROR: expected_size=1000038 does not match set.size()=1000023
+.ERROR: expected_size=1000198 does not match set.size()=1000220
+
+Running MyBSTnext-3workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000162 does not match set.size()=1000146
+.ERROR: expected_size=999959 does not match set.size()=999911
+.ERROR: expected_size=1000377 does not match set.size()=1000334
+.ERROR: expected_size=1000308 does not match set.size()=1000307
+.ERROR: expected_size=1000187 does not match set.size()=1000185
+.ERROR: expected_size=1000165 does not match set.size()=1000070
+.ERROR: expected_size=1000104 does not match set.size()=1000094
+.ERROR: expected_size=1000013 does not match set.size()=1000093
+.ERROR: expected_size=1000351 does not match set.size()=1000318
+.ERROR: expected_size=1000758 does not match set.size()=1000773
+.ERROR: expected_size=1000355 does not match set.size()=1000351
+.ERROR: expected_size=999708 does not match set.size()=999742
+.ERROR: expected_size=999657 does not match set.size()=999727
+.ERROR: expected_size=1000082 does not match set.size()=1000031
+.ERROR: expected_size=1000190 does not match set.size()=1000167
+
+Running MyBSTnext-7workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000575 does not match set.size()=1000591
+.ERROR: expected_size=1000085 does not match set.size()=1000120
+.ERROR: expected_size=999613 does not match set.size()=999598
+.ERROR: expected_size=1000439 does not match set.size()=1000459
+.ERROR: expected_size=1000823 does not match set.size()=1000852
+.ERROR: expected_size=999676 does not match set.size()=999684
+.ERROR: expected_size=1000218 does not match set.size()=1000254
+.ERROR: expected_size=1000420 does not match set.size()=1000367
+.ERROR: expected_size=999910 does not match set.size()=1000040
+.ERROR: expected_size=999501 does not match set.size()=999516
+.ERROR: expected_size=999481 does not match set.size()=999485
+.ERROR: expected_size=1000235 does not match set.size()=1000174
+.ERROR: expected_size=999862 does not match set.size()=999975
+.ERROR: expected_size=1000711 does not match set.size()=1000782
+.
+Running MyBSTnext-15workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000188 does not match set.size()=1000126
+.ERROR: expected_size=1000469 does not match set.size()=1000569
+.ERROR: expected_size=999565 does not match set.size()=999594
+.ERROR: expected_size=999690 does not match set.size()=999775
+.ERROR: expected_size=1000884 does not match set.size()=1000860
+.ERROR: expected_size=996500 does not match set.size()=996451
+.ERROR: expected_size=1000644 does not match set.size()=1000561
+.ERROR: expected_size=999942 does not match set.size()=1000020
+.ERROR: expected_size=1000164 does not match set.size()=1000108
+.ERROR: expected_size=999532 does not match set.size()=999548
+.ERROR: expected_size=1000032 does not match set.size()=1000048
+.ERROR: expected_size=1000075 does not match set.size()=1000204
+.ERROR: expected_size=1000186 does not match set.size()=1000180
+.ERROR: expected_size=999249 does not match set.size()=999168
+.ERROR: expected_size=999762 does not match set.size()=999885
+
+Running MyBSTnext-31workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=999892 does not match set.size()=999551
+.ERROR: expected_size=996951 does not match set.size()=997007
+.ERROR: expected_size=1000013 does not match set.size()=1000066
+.ERROR: expected_size=1000488 does not match set.size()=1000428
+.ERROR: expected_size=1000164 does not match set.size()=1000153
+.ERROR: expected_size=1000423 does not match set.size()=1000393
+.ERROR: expected_size=1000416 does not match set.size()=1000278
+.ERROR: expected_size=998793 does not match set.size()=998692
+.ERROR: expected_size=1000029 does not match set.size()=1000020
+.ERROR: expected_size=999258 does not match set.size()=999176
+.ERROR: expected_size=1000629 does not match set.size()=1000540
+.ERROR: expected_size=1000307 does not match set.size()=1000413
+.ERROR: expected_size=1000359 does not match set.size()=1000443
+.ERROR: expected_size=999471 does not match set.size()=999464
+.ERROR: expected_size=999427 does not match set.size()=999498
+
+Running MyBSTnext-63workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000345 does not match set.size()=1000481
+.ERROR: expected_size=999866 does not match set.size()=999659
+.ERROR: expected_size=999889 does not match set.size()=999851
+.ERROR: expected_size=1000935 does not match set.size()=1001000
+.ERROR: expected_size=999811 does not match set.size()=999673
+.ERROR: expected_size=999315 does not match set.size()=999363
+.ERROR: expected_size=999630 does not match set.size()=999926
+.ERROR: expected_size=999867 does not match set.size()=999997
+.ERROR: expected_size=1001098 does not match set.size()=1001015
+.ERROR: expected_size=999863 does not match set.size()=999808
+.ERROR: expected_size=998879 does not match set.size()=998973
+.ERROR: expected_size=999064 does not match set.size()=998969
+.ERROR: expected_size=999402 does not match set.size()=999347
+.ERROR: expected_size=999553 does not match set.size()=999783
+.ERROR: expected_size=999522 does not match set.size()=999831
+
+Running MyBSTBaseline-1workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833067003936 does not match dsKeysum=0
+.ERROR: threadsKeysum=832990246834 does not match dsKeysum=0
+.ERROR: threadsKeysum=833091701319 does not match dsKeysum=0
+.ERROR: threadsKeysum=833029151359 does not match dsKeysum=0
+.ERROR: threadsKeysum=832788307602 does not match dsKeysum=0
+.ERROR: threadsKeysum=832880089944 does not match dsKeysum=0
+.ERROR: threadsKeysum=833619263969 does not match dsKeysum=0
+.ERROR: threadsKeysum=833800948998 does not match dsKeysum=0
+.ERROR: threadsKeysum=833375436547 does not match dsKeysum=0
+.ERROR: threadsKeysum=833586627459 does not match dsKeysum=0
+.ERROR: threadsKeysum=832580109300 does not match dsKeysum=0
+.ERROR: threadsKeysum=833220806405 does not match dsKeysum=0
+.ERROR: threadsKeysum=833319803520 does not match dsKeysum=0
+.ERROR: threadsKeysum=832855982302 does not match dsKeysum=0
+.ERROR: threadsKeysum=833528794297 does not match dsKeysum=0
+
+Running MyBSTBaseline-3workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833048266725 does not match dsKeysum=0
+.ERROR: threadsKeysum=832820876139 does not match dsKeysum=0
+.ERROR: threadsKeysum=833205340220 does not match dsKeysum=0
+.ERROR: threadsKeysum=834220857007 does not match dsKeysum=0
+.ERROR: threadsKeysum=832437362236 does not match dsKeysum=0
+.ERROR: threadsKeysum=833067565362 does not match dsKeysum=0
+.ERROR: threadsKeysum=833111272366 does not match dsKeysum=0
+.ERROR: threadsKeysum=833489402016 does not match dsKeysum=0
+.ERROR: threadsKeysum=832378480591 does not match dsKeysum=0
+.ERROR: threadsKeysum=833513639792 does not match dsKeysum=0
+.ERROR: threadsKeysum=833229742378 does not match dsKeysum=0
+.ERROR: threadsKeysum=832804100591 does not match dsKeysum=0
+.ERROR: threadsKeysum=834115579904 does not match dsKeysum=0
+.ERROR: threadsKeysum=833536322487 does not match dsKeysum=0
+.ERROR: threadsKeysum=832863034133 does not match dsKeysum=0
+
+Running MyBSTBaseline-7workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=832974756649 does not match dsKeysum=0
+.ERROR: threadsKeysum=833809727224 does not match dsKeysum=0
+.ERROR: threadsKeysum=833035531452 does not match dsKeysum=0
+.ERROR: threadsKeysum=833384201190 does not match dsKeysum=0
+.ERROR: threadsKeysum=833907139796 does not match dsKeysum=0
+.ERROR: threadsKeysum=833118629376 does not match dsKeysum=0
+.ERROR: threadsKeysum=833368582394 does not match dsKeysum=0
+.ERROR: threadsKeysum=832561433784 does not match dsKeysum=0
+.ERROR: threadsKeysum=833044110827 does not match dsKeysum=0
+.ERROR: threadsKeysum=834192460962 does not match dsKeysum=0
+.ERROR: threadsKeysum=832917742618 does not match dsKeysum=0
+.ERROR: threadsKeysum=833738014670 does not match dsKeysum=0
+.ERROR: threadsKeysum=832945138610 does not match dsKeysum=0
+.ERROR: threadsKeysum=834291252417 does not match dsKeysum=0
+.ERROR: threadsKeysum=832560545044 does not match dsKeysum=0
+
+Running MyBSTBaseline-15workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833507254954 does not match dsKeysum=0
+.ERROR: threadsKeysum=832512888157 does not match dsKeysum=0
+.ERROR: threadsKeysum=830024467058 does not match dsKeysum=0
+.ERROR: threadsKeysum=833515662491 does not match dsKeysum=0
+.ERROR: threadsKeysum=833793977563 does not match dsKeysum=0
+.ERROR: threadsKeysum=833054232109 does not match dsKeysum=0
+.ERROR: threadsKeysum=833550984643 does not match dsKeysum=0
+.ERROR: threadsKeysum=832886631090 does not match dsKeysum=0
+.ERROR: threadsKeysum=834567366972 does not match dsKeysum=0
+.ERROR: threadsKeysum=833257040417 does not match dsKeysum=0
+.ERROR: threadsKeysum=833121238292 does not match dsKeysum=0
+.ERROR: threadsKeysum=833298678218 does not match dsKeysum=0
+.ERROR: threadsKeysum=832333110069 does not match dsKeysum=0
+.ERROR: threadsKeysum=832727539072 does not match dsKeysum=0
+.ERROR: threadsKeysum=832143284723 does not match dsKeysum=0
+
+Running MyBSTBaseline-31workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833709394027 does not match dsKeysum=0
+.ERROR: threadsKeysum=833401738068 does not match dsKeysum=0
+.ERROR: threadsKeysum=833266496003 does not match dsKeysum=0
+.ERROR: threadsKeysum=832958293567 does not match dsKeysum=0
+.ERROR: threadsKeysum=832751471360 does not match dsKeysum=0
+.ERROR: threadsKeysum=833155954802 does not match dsKeysum=0
+.ERROR: threadsKeysum=832624647871 does not match dsKeysum=0
+.ERROR: threadsKeysum=832825435583 does not match dsKeysum=0
+.ERROR: threadsKeysum=833572052561 does not match dsKeysum=0
+.ERROR: threadsKeysum=833425837380 does not match dsKeysum=0
+.ERROR: threadsKeysum=833051496803 does not match dsKeysum=0
+.ERROR: threadsKeysum=832545794476 does not match dsKeysum=0
+.ERROR: threadsKeysum=832879986219 does not match dsKeysum=0
+.ERROR: threadsKeysum=833838688008 does not match dsKeysum=0
+.ERROR: threadsKeysum=833826918702 does not match dsKeysum=0
+
+Running MyBSTBaseline-63workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=832395736922 does not match dsKeysum=0
+.ERROR: threadsKeysum=833191634701 does not match dsKeysum=0
+.ERROR: threadsKeysum=833524393761 does not match dsKeysum=0
+.ERROR: threadsKeysum=832515531580 does not match dsKeysum=0
+.ERROR: threadsKeysum=833210773103 does not match dsKeysum=0
+.ERROR: threadsKeysum=833804843767 does not match dsKeysum=0
+.ERROR: threadsKeysum=833504307107 does not match dsKeysum=0
+.ERROR: threadsKeysum=833004487411 does not match dsKeysum=0
+.ERROR: threadsKeysum=833632430978 does not match dsKeysum=0
+.ERROR: threadsKeysum=833699220565 does not match dsKeysum=0
+.ERROR: threadsKeysum=833463225158 does not match dsKeysum=0
+.ERROR: threadsKeysum=833985753170 does not match dsKeysum=0
+.ERROR: threadsKeysum=833569561281 does not match dsKeysum=0
+.ERROR: threadsKeysum=833518716639 does not match dsKeysum=0
+.ERROR: threadsKeysum=833325495344 does not match dsKeysum=0
+
+Running BST-1workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-3workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-7workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-15workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-31workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+Running BST-63workloadThreads-0sizeThreads-1000000setSize-3i-2d-95f
+...............
+[7/8] Running update-heavy scalability test (1-32 query threads)...
+Running MyBSTnext-32workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=999152 does not match set.size()=999905
+.ERROR: expected_size=999608 does not match set.size()=1000238
+.ERROR: expected_size=1001517 does not match set.size()=1004430
+.ERROR: expected_size=1000567 does not match set.size()=1007388
+.ERROR: expected_size=999615 does not match set.size()=1006621
+.ERROR: expected_size=999938 does not match set.size()=1006016
+.ERROR: expected_size=999309 does not match set.size()=1006872
+.ERROR: expected_size=1000270 does not match set.size()=1006339
+.ERROR: expected_size=999708 does not match set.size()=1008212
+.ERROR: expected_size=999441 does not match set.size()=1006448
+.ERROR: expected_size=999737 does not match set.size()=1007573
+.ERROR: expected_size=1000292 does not match set.size()=1007470
+.ERROR: expected_size=999095 does not match set.size()=1008323
+.ERROR: expected_size=1000713 does not match set.size()=1006270
+.ERROR: expected_size=999828 does not match set.size()=1005358
+
+Running MyBSTnext-32workloadThreads-4sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=999791 does not match set.size()=999986
+.ERROR: expected_size=999489 does not match set.size()=999990
+.ERROR: expected_size=1001024 does not match set.size()=1000021
+.ERROR: expected_size=1000102 does not match set.size()=999998
+.ERROR: expected_size=1000376 does not match set.size()=1000015
+.ERROR: expected_size=999871 does not match set.size()=999989
+.ERROR: expected_size=1000193 does not match set.size()=1000006
+.ERROR: expected_size=999759 does not match set.size()=1000012
+.ERROR: expected_size=1000421 does not match set.size()=1000012
+.ERROR: expected_size=999656 does not match set.size()=1000003
+.ERROR: expected_size=1000494 does not match set.size()=1000012
+.ERROR: expected_size=1000490 does not match set.size()=1000100
+.ERROR: expected_size=1000679 does not match set.size()=1000008
+.ERROR: expected_size=1000157 does not match set.size()=1000081
+.ERROR: expected_size=1000152 does not match set.size()=999979
+
+Running MyBSTnext-32workloadThreads-8sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000431 does not match set.size()=1000003
+.ERROR: expected_size=999804 does not match set.size()=1000000
+.ERROR: expected_size=1000414 does not match set.size()=1000010
+.ERROR: expected_size=1000348 does not match set.size()=1000000
+.ERROR: expected_size=999707 does not match set.size()=1000006
+.ERROR: expected_size=1000353 does not match set.size()=999997
+.ERROR: expected_size=1000088 does not match set.size()=1000000
+.ERROR: expected_size=1000428 does not match set.size()=999999
+.ERROR: expected_size=999600 does not match set.size()=999999
+.ERROR: expected_size=999630 does not match set.size()=999999
+.ERROR: expected_size=1000599 does not match set.size()=999996
+.ERROR: expected_size=1000037 does not match set.size()=1000002
+.ERROR: expected_size=999431 does not match set.size()=1000004
+.ERROR: expected_size=1000234 does not match set.size()=1000001
+.ERROR: expected_size=1000059 does not match set.size()=1000013
+
+Running MyBSTnext-32workloadThreads-16sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=999802 does not match set.size()=999998
+.ERROR: expected_size=1000099 does not match set.size()=1000000
+.ERROR: expected_size=1000170 does not match set.size()=1000000
+.ERROR: expected_size=999517 does not match set.size()=1000002
+.ERROR: expected_size=1000028 does not match set.size()=999997
+.ERROR: expected_size=999668 does not match set.size()=999998
+.ERROR: expected_size=998836 does not match set.size()=1000000
+.ERROR: expected_size=1000068 does not match set.size()=1000001
+.ERROR: expected_size=999914 does not match set.size()=1000004
+.ERROR: expected_size=1000410 does not match set.size()=1000004
+.ERROR: expected_size=1000126 does not match set.size()=1000015
+.ERROR: expected_size=999957 does not match set.size()=1000002
+.ERROR: expected_size=1000057 does not match set.size()=999993
+.ERROR: expected_size=1000526 does not match set.size()=999997
+.ERROR: expected_size=999915 does not match set.size()=999999
+
+Running MyBSTnext-32workloadThreads-32sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000076 does not match set.size()=1000012
+.Exception in thread "Thread-251" java.lang.StackOverflowError
+	at bst.MyBSTnext.getViaVersionTree(MyBSTnext.java:260)
+	at bst.MyBSTnext.get(MyBSTnext.java:219)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+	at bst.MyBSTnext.get(MyBSTnext.java:229)
+ERROR: expected_size=999880 does not match set.size()=1000000
+.ERROR: expected_size=999957 does not match set.size()=1000000
+.ERROR: expected_size=999957 does not match set.size()=999999
+.ERROR: expected_size=1000237 does not match set.size()=999998
+.ERROR: expected_size=1000091 does not match set.size()=999999
+.ERROR: expected_size=1000209 does not match set.size()=1000001
+.ERROR: expected_size=999622 does not match set.size()=999998
+.ERROR: expected_size=1000080 does not match set.size()=1000007
+.ERROR: expected_size=1000079 does not match set.size()=1000001
+.ERROR: expected_size=999696 does not match set.size()=1000000
+.ERROR: expected_size=1000104 does not match set.size()=1000000
+.ERROR: expected_size=1000143 does not match set.size()=1000000
+.ERROR: expected_size=999980 does not match set.size()=1000000
+.ERROR: expected_size=999964 does not match set.size()=1000000
+
+Running MyBSTBaseline-32workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833033124818 does not match dsKeysum=0
+.ERROR: threadsKeysum=834061245422 does not match dsKeysum=0
+.ERROR: threadsKeysum=833258508295 does not match dsKeysum=0
+.ERROR: threadsKeysum=833047512648 does not match dsKeysum=0
+.ERROR: threadsKeysum=833741996267 does not match dsKeysum=0
+.ERROR: threadsKeysum=834338344935 does not match dsKeysum=0
+.ERROR: threadsKeysum=833099236669 does not match dsKeysum=0
+.ERROR: threadsKeysum=833410151677 does not match dsKeysum=0
+.ERROR: threadsKeysum=833036420090 does not match dsKeysum=0
+.ERROR: threadsKeysum=834788942462 does not match dsKeysum=0
+.ERROR: threadsKeysum=833664621755 does not match dsKeysum=0
+.ERROR: threadsKeysum=831671482625 does not match dsKeysum=0
+.ERROR: threadsKeysum=833704299254 does not match dsKeysum=0
+.ERROR: threadsKeysum=833041794642 does not match dsKeysum=0
+.ERROR: threadsKeysum=832827719827 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-4sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=832541465014 does not match dsKeysum=0
+.ERROR: threadsKeysum=833608034253 does not match dsKeysum=0
+.ERROR: threadsKeysum=834362877616 does not match dsKeysum=0
+.ERROR: threadsKeysum=833936748695 does not match dsKeysum=0
+.ERROR: threadsKeysum=833250222823 does not match dsKeysum=0
+.ERROR: threadsKeysum=833415290222 does not match dsKeysum=0
+.ERROR: threadsKeysum=833244394986 does not match dsKeysum=0
+.ERROR: threadsKeysum=832721437756 does not match dsKeysum=0
+.ERROR: threadsKeysum=833111398173 does not match dsKeysum=0
+.ERROR: threadsKeysum=833148658194 does not match dsKeysum=0
+.ERROR: threadsKeysum=833703639772 does not match dsKeysum=0
+.ERROR: threadsKeysum=833105258973 does not match dsKeysum=0
+.ERROR: threadsKeysum=833337403255 does not match dsKeysum=0
+.ERROR: threadsKeysum=834395119138 does not match dsKeysum=0
+.ERROR: threadsKeysum=833418202973 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-8sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833137616068 does not match dsKeysum=0
+.ERROR: threadsKeysum=832429009411 does not match dsKeysum=0
+.ERROR: threadsKeysum=834009606107 does not match dsKeysum=0
+.ERROR: threadsKeysum=832934713979 does not match dsKeysum=0
+.ERROR: threadsKeysum=832920895569 does not match dsKeysum=0
+.ERROR: threadsKeysum=832867978916 does not match dsKeysum=0
+.ERROR: threadsKeysum=833818755753 does not match dsKeysum=0
+.ERROR: threadsKeysum=833097099612 does not match dsKeysum=0
+.ERROR: threadsKeysum=832983212558 does not match dsKeysum=0
+.ERROR: threadsKeysum=833927632628 does not match dsKeysum=0
+.ERROR: threadsKeysum=833256645744 does not match dsKeysum=0
+.ERROR: threadsKeysum=833877517181 does not match dsKeysum=0
+.ERROR: threadsKeysum=832996999289 does not match dsKeysum=0
+.ERROR: threadsKeysum=834604518458 does not match dsKeysum=0
+.ERROR: threadsKeysum=833921001091 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-16sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833774705513 does not match dsKeysum=0
+.ERROR: threadsKeysum=832926672238 does not match dsKeysum=0
+.ERROR: threadsKeysum=832377553072 does not match dsKeysum=0
+.ERROR: threadsKeysum=833029341555 does not match dsKeysum=0
+.ERROR: threadsKeysum=832324125850 does not match dsKeysum=0
+.ERROR: threadsKeysum=833584154749 does not match dsKeysum=0
+.ERROR: threadsKeysum=833800085915 does not match dsKeysum=0
+.ERROR: threadsKeysum=833775436801 does not match dsKeysum=0
+.ERROR: threadsKeysum=833215833528 does not match dsKeysum=0
+.ERROR: threadsKeysum=833266196746 does not match dsKeysum=0
+.ERROR: threadsKeysum=832326995796 does not match dsKeysum=0
+.ERROR: threadsKeysum=833517605047 does not match dsKeysum=0
+.ERROR: threadsKeysum=832798846432 does not match dsKeysum=0
+.ERROR: threadsKeysum=833342010514 does not match dsKeysum=0
+.ERROR: threadsKeysum=832654596725 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-32sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=832929576837 does not match dsKeysum=0
+.ERROR: threadsKeysum=834190668925 does not match dsKeysum=0
+.ERROR: threadsKeysum=832593237455 does not match dsKeysum=0
+.ERROR: threadsKeysum=832795656646 does not match dsKeysum=0
+.ERROR: threadsKeysum=831628244878 does not match dsKeysum=0
+.ERROR: threadsKeysum=833712936123 does not match dsKeysum=0
+.ERROR: threadsKeysum=833506783637 does not match dsKeysum=0
+.ERROR: threadsKeysum=832419871765 does not match dsKeysum=0
+.ERROR: threadsKeysum=833299368639 does not match dsKeysum=0
+.ERROR: threadsKeysum=833489547502 does not match dsKeysum=0
+.ERROR: threadsKeysum=833619107635 does not match dsKeysum=0
+.ERROR: threadsKeysum=833779011204 does not match dsKeysum=0
+.ERROR: threadsKeysum=833860636440 does not match dsKeysum=0
+.ERROR: threadsKeysum=832680219062 does not match dsKeysum=0
+.ERROR: threadsKeysum=833735098472 does not match dsKeysum=0
+
+[8/10] Running read-heavy scalability test (1-32 query threads, delay 0)...
+Running MyBSTnext-32workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=999831 does not match set.size()=999940
+.ERROR: expected_size=999450 does not match set.size()=999936
+.ERROR: expected_size=1000182 does not match set.size()=1001694
+.ERROR: expected_size=1000664 does not match set.size()=1002006
+.ERROR: expected_size=1000213 does not match set.size()=1002778
+.ERROR: expected_size=999774 does not match set.size()=1002538
+.ERROR: expected_size=1000395 does not match set.size()=1002580
+.ERROR: expected_size=1000229 does not match set.size()=1002409
+.ERROR: expected_size=999740 does not match set.size()=1002831
+.ERROR: expected_size=1000131 does not match set.size()=1002419
+.ERROR: expected_size=999480 does not match set.size()=1002951
+.ERROR: expected_size=1000011 does not match set.size()=1002458
+.ERROR: expected_size=999527 does not match set.size()=1002051
+.ERROR: expected_size=999663 does not match set.size()=1002700
+.ERROR: expected_size=999899 does not match set.size()=1002307
+
+Running MyBSTnext-32workloadThreads-4sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=999859 does not match set.size()=999996
+.ERROR: expected_size=1000514 does not match set.size()=1000000
+.ERROR: expected_size=999439 does not match set.size()=1000001
+.ERROR: expected_size=999935 does not match set.size()=1000014
+.ERROR: expected_size=1000107 does not match set.size()=1000003
+.ERROR: expected_size=1000332 does not match set.size()=1000009
+.ERROR: expected_size=1000077 does not match set.size()=1000001
+.ERROR: expected_size=999538 does not match set.size()=1000001
+.ERROR: expected_size=999611 does not match set.size()=1000016
+.ERROR: expected_size=1000171 does not match set.size()=1000004
+.ERROR: expected_size=999541 does not match set.size()=1000009
+.ERROR: expected_size=999763 does not match set.size()=1000004
+.ERROR: expected_size=1000740 does not match set.size()=1000014
+.ERROR: expected_size=999583 does not match set.size()=1000014
+.ERROR: expected_size=1000044 does not match set.size()=999999
+
+Running MyBSTnext-32workloadThreads-8sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000022 does not match set.size()=1000006
+.ERROR: expected_size=999936 does not match set.size()=1000005
+.ERROR: expected_size=999836 does not match set.size()=1000000
+.ERROR: expected_size=1000029 does not match set.size()=1000008
+.ERROR: expected_size=1000014 does not match set.size()=1000000
+.ERROR: expected_size=1000468 does not match set.size()=1000000
+.ERROR: expected_size=1000161 does not match set.size()=1000000
+.ERROR: expected_size=1000251 does not match set.size()=1000000
+.ERROR: expected_size=999799 does not match set.size()=999999
+.ERROR: expected_size=1000023 does not match set.size()=1000002
+.ERROR: expected_size=1000073 does not match set.size()=1000001
+.ERROR: expected_size=1000161 does not match set.size()=1000002
+.ERROR: expected_size=999928 does not match set.size()=1000000
+.ERROR: expected_size=1000222 does not match set.size()=1000000
+.ERROR: expected_size=1000431 does not match set.size()=999998
+
+Running MyBSTnext-32workloadThreads-16sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=999832 does not match set.size()=1000000
+.ERROR: expected_size=999950 does not match set.size()=1000000
+.ERROR: expected_size=999881 does not match set.size()=1000000
+.ERROR: expected_size=999853 does not match set.size()=999999
+.ERROR: expected_size=999784 does not match set.size()=1000000
+.ERROR: expected_size=1000255 does not match set.size()=1000000
+.ERROR: expected_size=1000117 does not match set.size()=1000001
+.ERROR: expected_size=999851 does not match set.size()=1000001
+.ERROR: expected_size=999854 does not match set.size()=1000000
+.ERROR: expected_size=999916 does not match set.size()=1000000
+.ERROR: expected_size=999759 does not match set.size()=999997
+.ERROR: expected_size=999922 does not match set.size()=999999
+.ERROR: expected_size=1000216 does not match set.size()=999999
+.ERROR: expected_size=999963 does not match set.size()=1000001
+.ERROR: expected_size=1000096 does not match set.size()=1000001
+
+Running MyBSTnext-32workloadThreads-32sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000122 does not match set.size()=999999
+.ERROR: expected_size=1000357 does not match set.size()=1000000
+.ERROR: expected_size=999919 does not match set.size()=1000000
+.ERROR: expected_size=999772 does not match set.size()=1000000
+.ERROR: expected_size=1000024 does not match set.size()=1000000
+.ERROR: expected_size=1000106 does not match set.size()=1000001
+.ERROR: expected_size=1000008 does not match set.size()=1000000
+.ERROR: expected_size=1000081 does not match set.size()=1000000
+.ERROR: expected_size=1000143 does not match set.size()=1000000
+.ERROR: expected_size=1000088 does not match set.size()=999999
+.ERROR: expected_size=999945 does not match set.size()=1000000
+.ERROR: expected_size=1000071 does not match set.size()=1000000
+.ERROR: expected_size=1000326 does not match set.size()=999999
+.ERROR: expected_size=1000241 does not match set.size()=1000000
+.ERROR: expected_size=1000111 does not match set.size()=1000000
+
+Running MyBSTBaseline-32workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833356494281 does not match dsKeysum=0
+.ERROR: threadsKeysum=832802954550 does not match dsKeysum=0
+.ERROR: threadsKeysum=833153257115 does not match dsKeysum=0
+.ERROR: threadsKeysum=832978577386 does not match dsKeysum=0
+.ERROR: threadsKeysum=834528563674 does not match dsKeysum=0
+.ERROR: threadsKeysum=834289032811 does not match dsKeysum=0
+.ERROR: threadsKeysum=833186769459 does not match dsKeysum=0
+.ERROR: threadsKeysum=833759790453 does not match dsKeysum=0
+.ERROR: threadsKeysum=832844823334 does not match dsKeysum=0
+.ERROR: threadsKeysum=832624815447 does not match dsKeysum=0
+.ERROR: threadsKeysum=833419336917 does not match dsKeysum=0
+.ERROR: threadsKeysum=833414363303 does not match dsKeysum=0
+.ERROR: threadsKeysum=833248788714 does not match dsKeysum=0
+.ERROR: threadsKeysum=833004623992 does not match dsKeysum=0
+.ERROR: threadsKeysum=833095992912 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-4sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833624570856 does not match dsKeysum=0
+.ERROR: threadsKeysum=832828997405 does not match dsKeysum=0
+.ERROR: threadsKeysum=834413940723 does not match dsKeysum=0
+.ERROR: threadsKeysum=832072769792 does not match dsKeysum=0
+.ERROR: threadsKeysum=832033685429 does not match dsKeysum=0
+.ERROR: threadsKeysum=833938766121 does not match dsKeysum=0
+.ERROR: threadsKeysum=832664456529 does not match dsKeysum=0
+.ERROR: threadsKeysum=832621700436 does not match dsKeysum=0
+.ERROR: threadsKeysum=833859991825 does not match dsKeysum=0
+.ERROR: threadsKeysum=833312069849 does not match dsKeysum=0
+.ERROR: threadsKeysum=832580074261 does not match dsKeysum=0
+.ERROR: threadsKeysum=833596634068 does not match dsKeysum=0
+.ERROR: threadsKeysum=833090964990 does not match dsKeysum=0
+.ERROR: threadsKeysum=833298519970 does not match dsKeysum=0
+.ERROR: threadsKeysum=833041062197 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-8sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=832929193247 does not match dsKeysum=0
+.ERROR: threadsKeysum=833371737945 does not match dsKeysum=0
+.ERROR: threadsKeysum=832820903363 does not match dsKeysum=0
+.ERROR: threadsKeysum=833269923832 does not match dsKeysum=0
+.ERROR: threadsKeysum=833532683225 does not match dsKeysum=0
+.ERROR: threadsKeysum=832788981464 does not match dsKeysum=0
+.ERROR: threadsKeysum=833675819774 does not match dsKeysum=0
+.ERROR: threadsKeysum=833185214713 does not match dsKeysum=0
+.ERROR: threadsKeysum=832186340576 does not match dsKeysum=0
+.ERROR: threadsKeysum=832816320347 does not match dsKeysum=0
+.ERROR: threadsKeysum=833981530583 does not match dsKeysum=0
+.ERROR: threadsKeysum=833454040645 does not match dsKeysum=0
+.ERROR: threadsKeysum=833570980581 does not match dsKeysum=0
+.ERROR: threadsKeysum=833699049689 does not match dsKeysum=0
+.ERROR: threadsKeysum=832866545835 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-16sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833438316209 does not match dsKeysum=0
+.ERROR: threadsKeysum=834361464540 does not match dsKeysum=0
+.ERROR: threadsKeysum=834503472326 does not match dsKeysum=0
+.ERROR: threadsKeysum=834176049862 does not match dsKeysum=0
+.ERROR: threadsKeysum=833768456967 does not match dsKeysum=0
+.ERROR: threadsKeysum=833460286108 does not match dsKeysum=0
+.ERROR: threadsKeysum=833558049080 does not match dsKeysum=0
+.ERROR: threadsKeysum=834703482803 does not match dsKeysum=0
+.ERROR: threadsKeysum=833781658198 does not match dsKeysum=0
+.ERROR: threadsKeysum=832634093642 does not match dsKeysum=0
+.ERROR: threadsKeysum=833249058130 does not match dsKeysum=0
+.ERROR: threadsKeysum=833788887226 does not match dsKeysum=0
+.ERROR: threadsKeysum=833685228279 does not match dsKeysum=0
+.ERROR: threadsKeysum=833049206209 does not match dsKeysum=0
+.ERROR: threadsKeysum=833961764527 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-32sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=834426059686 does not match dsKeysum=0
+.ERROR: threadsKeysum=834272827688 does not match dsKeysum=0
+.ERROR: threadsKeysum=832663621074 does not match dsKeysum=0
+.ERROR: threadsKeysum=833140035296 does not match dsKeysum=0
+.ERROR: threadsKeysum=831705394538 does not match dsKeysum=0
+.ERROR: threadsKeysum=833444016870 does not match dsKeysum=0
+.ERROR: threadsKeysum=833296654463 does not match dsKeysum=0
+.ERROR: threadsKeysum=831561713921 does not match dsKeysum=0
+.ERROR: threadsKeysum=832327806918 does not match dsKeysum=0
+.ERROR: threadsKeysum=833825032985 does not match dsKeysum=0
+.ERROR: threadsKeysum=833339349121 does not match dsKeysum=0
+.ERROR: threadsKeysum=833626052625 does not match dsKeysum=0
+.ERROR: threadsKeysum=833343108843 does not match dsKeysum=0
+.ERROR: threadsKeysum=833629150244 does not match dsKeysum=0
+.ERROR: threadsKeysum=833218144297 does not match dsKeysum=0
+
+[9/10] Running update-heavy scalability test (1-32 query threads, delay 700µs)...
+Running MyBSTnext-32workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=999401 does not match set.size()=999356
+.ERROR: expected_size=999942 does not match set.size()=999498
+.ERROR: expected_size=1001138 does not match set.size()=1001297
+.ERROR: expected_size=999807 does not match set.size()=999486
+.ERROR: expected_size=1000654 does not match set.size()=1000286
+.ERROR: expected_size=1001125 does not match set.size()=1000806
+.ERROR: expected_size=1000446 does not match set.size()=999868
+.ERROR: expected_size=998137 does not match set.size()=997917
+.ERROR: expected_size=999911 does not match set.size()=1000059
+.ERROR: expected_size=999252 does not match set.size()=999294
+.ERROR: expected_size=1000079 does not match set.size()=999829
+.ERROR: expected_size=1000486 does not match set.size()=999938
+.ERROR: expected_size=999347 does not match set.size()=999094
+.ERROR: expected_size=1000931 does not match set.size()=1000562
+.ERROR: expected_size=998914 does not match set.size()=998557
+
+Running MyBSTnext-32workloadThreads-4sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000734 does not match set.size()=999076
+.ERROR: expected_size=1000319 does not match set.size()=1000434
+.ERROR: expected_size=1000126 does not match set.size()=998613
+.ERROR: expected_size=998733 does not match set.size()=998541
+.ERROR: expected_size=999509 does not match set.size()=999692
+.ERROR: expected_size=1000032 does not match set.size()=999655
+.ERROR: expected_size=999954 does not match set.size()=999392
+.ERROR: expected_size=1001220 does not match set.size()=1000672
+.ERROR: expected_size=1001217 does not match set.size()=1001451
+.ERROR: expected_size=1000052 does not match set.size()=999306
+.ERROR: expected_size=1000439 does not match set.size()=999725
+.ERROR: expected_size=999619 does not match set.size()=998968
+.ERROR: expected_size=1000448 does not match set.size()=999253
+.ERROR: expected_size=1000009 does not match set.size()=999805
+.ERROR: expected_size=998741 does not match set.size()=998476
+
+Running MyBSTnext-32workloadThreads-8sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000122 does not match set.size()=999721
+.ERROR: expected_size=1000245 does not match set.size()=998916
+.ERROR: expected_size=999927 does not match set.size()=998035
+.ERROR: expected_size=1000444 does not match set.size()=999016
+.ERROR: expected_size=1000952 does not match set.size()=1000325
+.ERROR: expected_size=999182 does not match set.size()=998633
+.ERROR: expected_size=1000978 does not match set.size()=1000697
+.ERROR: expected_size=999214 does not match set.size()=997668
+.ERROR: expected_size=1000420 does not match set.size()=999800
+.ERROR: expected_size=999103 does not match set.size()=997399
+.ERROR: expected_size=999887 does not match set.size()=999506
+.ERROR: expected_size=1000593 does not match set.size()=1000638
+.ERROR: expected_size=999340 does not match set.size()=998284
+.ERROR: expected_size=999703 does not match set.size()=997952
+.ERROR: expected_size=999511 does not match set.size()=998437
+
+Running MyBSTnext-32workloadThreads-16sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000372 does not match set.size()=999224
+.ERROR: expected_size=1000632 does not match set.size()=999382
+.ERROR: expected_size=1000084 does not match set.size()=999179
+.ERROR: expected_size=1000319 does not match set.size()=998507
+.ERROR: expected_size=999356 does not match set.size()=998102
+.ERROR: expected_size=1000562 does not match set.size()=999869
+.ERROR: expected_size=1000632 does not match set.size()=1000023
+.ERROR: expected_size=1000078 does not match set.size()=999625
+.ERROR: expected_size=998495 does not match set.size()=998859
+.ERROR: expected_size=1000127 does not match set.size()=999736
+.ERROR: expected_size=1000170 does not match set.size()=998991
+.ERROR: expected_size=999928 does not match set.size()=997969
+.ERROR: expected_size=999684 does not match set.size()=999701
+.ERROR: expected_size=998963 does not match set.size()=999156
+.ERROR: expected_size=1001228 does not match set.size()=999703
+
+Running MyBSTnext-32workloadThreads-32sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: expected_size=1000265 does not match set.size()=999347
+.ERROR: expected_size=999958 does not match set.size()=998625
+.ERROR: expected_size=1000558 does not match set.size()=999609
+.ERROR: expected_size=1000056 does not match set.size()=1000641
+.ERROR: expected_size=999123 does not match set.size()=996752
+.ERROR: expected_size=999462 does not match set.size()=997632
+.ERROR: expected_size=999377 does not match set.size()=998338
+.ERROR: expected_size=999306 does not match set.size()=999697
+.ERROR: expected_size=1000286 does not match set.size()=999335
+.ERROR: expected_size=1000549 does not match set.size()=1000664
+.ERROR: expected_size=1000531 does not match set.size()=998368
+.ERROR: expected_size=1000764 does not match set.size()=999275
+.ERROR: expected_size=1000389 does not match set.size()=998863
+.ERROR: expected_size=1000038 does not match set.size()=998743
+.ERROR: expected_size=999985 does not match set.size()=1000215
+
+Running MyBSTBaseline-32workloadThreads-1sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=832682784473 does not match dsKeysum=0
+.ERROR: threadsKeysum=833777702866 does not match dsKeysum=0
+.ERROR: threadsKeysum=833074047170 does not match dsKeysum=0
+.ERROR: threadsKeysum=833774059294 does not match dsKeysum=0
+.ERROR: threadsKeysum=833096073285 does not match dsKeysum=0
+.ERROR: threadsKeysum=833266551136 does not match dsKeysum=0
+.ERROR: threadsKeysum=833988765462 does not match dsKeysum=0
+.ERROR: threadsKeysum=832822602478 does not match dsKeysum=0
+.ERROR: threadsKeysum=834359615180 does not match dsKeysum=0
+.ERROR: threadsKeysum=833210043862 does not match dsKeysum=0
+.ERROR: threadsKeysum=833615574492 does not match dsKeysum=0
+.ERROR: threadsKeysum=832904336568 does not match dsKeysum=0
+.ERROR: threadsKeysum=833222950158 does not match dsKeysum=0
+.ERROR: threadsKeysum=832576481030 does not match dsKeysum=0
+.ERROR: threadsKeysum=833121633044 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-4sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=832966856316 does not match dsKeysum=0
+.ERROR: threadsKeysum=834447753145 does not match dsKeysum=0
+.ERROR: threadsKeysum=833345466251 does not match dsKeysum=0
+.ERROR: threadsKeysum=833270092074 does not match dsKeysum=0
+.ERROR: threadsKeysum=833782587844 does not match dsKeysum=0
+.ERROR: threadsKeysum=834269435595 does not match dsKeysum=0
+.ERROR: threadsKeysum=833800175108 does not match dsKeysum=0
+.ERROR: threadsKeysum=833383559604 does not match dsKeysum=0
+.ERROR: threadsKeysum=832894957954 does not match dsKeysum=0
+.ERROR: threadsKeysum=832709595575 does not match dsKeysum=0
+.ERROR: threadsKeysum=833490468186 does not match dsKeysum=0
+.ERROR: threadsKeysum=833192209773 does not match dsKeysum=0
+.ERROR: threadsKeysum=832077544158 does not match dsKeysum=0
+.ERROR: threadsKeysum=834149170503 does not match dsKeysum=0
+.ERROR: threadsKeysum=832896377636 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-8sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=834403705671 does not match dsKeysum=0
+.ERROR: threadsKeysum=833787246340 does not match dsKeysum=0
+.ERROR: threadsKeysum=832825832032 does not match dsKeysum=0
+.ERROR: threadsKeysum=832879021692 does not match dsKeysum=0
+.ERROR: threadsKeysum=833804378489 does not match dsKeysum=0
+.ERROR: threadsKeysum=833812913852 does not match dsKeysum=0
+.ERROR: threadsKeysum=833929820668 does not match dsKeysum=0
+.ERROR: threadsKeysum=832254641517 does not match dsKeysum=0
+.ERROR: threadsKeysum=835209905388 does not match dsKeysum=0
+.ERROR: threadsKeysum=833441830001 does not match dsKeysum=0
+.ERROR: threadsKeysum=832984920787 does not match dsKeysum=0
+.ERROR: threadsKeysum=832743700405 does not match dsKeysum=0
+.ERROR: threadsKeysum=833607057655 does not match dsKeysum=0
+.ERROR: threadsKeysum=834090609486 does not match dsKeysum=0
+.ERROR: threadsKeysum=833471651155 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-16sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=833741654029 does not match dsKeysum=0
+.ERROR: threadsKeysum=832437712019 does not match dsKeysum=0
+.ERROR: threadsKeysum=832894679418 does not match dsKeysum=0
+.ERROR: threadsKeysum=833507433102 does not match dsKeysum=0
+.ERROR: threadsKeysum=834366708598 does not match dsKeysum=0
+.ERROR: threadsKeysum=833643424199 does not match dsKeysum=0
+.ERROR: threadsKeysum=832510138651 does not match dsKeysum=0
+.ERROR: threadsKeysum=832767079838 does not match dsKeysum=0
+.ERROR: threadsKeysum=833049790167 does not match dsKeysum=0
+.ERROR: threadsKeysum=832863001498 does not match dsKeysum=0
+.ERROR: threadsKeysum=833469497721 does not match dsKeysum=0
+.ERROR: threadsKeysum=832707109762 does not match dsKeysum=0
+.ERROR: threadsKeysum=833367014193 does not match dsKeysum=0
+.ERROR: threadsKeysum=833629956048 does not match dsKeysum=0
+.ERROR: threadsKeysum=833212190428 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-32sizeThreads-1000000setSize-30i-20d-50f
+.ERROR: threadsKeysum=834142855213 does not match dsKeysum=0
+.ERROR: threadsKeysum=833131203617 does not match dsKeysum=0
+.ERROR: threadsKeysum=833584743877 does not match dsKeysum=0
+.ERROR: threadsKeysum=833237315152 does not match dsKeysum=0
+.ERROR: threadsKeysum=832619877945 does not match dsKeysum=0
+.ERROR: threadsKeysum=832796202029 does not match dsKeysum=0
+.ERROR: threadsKeysum=834106107223 does not match dsKeysum=0
+.ERROR: threadsKeysum=833099619721 does not match dsKeysum=0
+.ERROR: threadsKeysum=832607094023 does not match dsKeysum=0
+.ERROR: threadsKeysum=832902683598 does not match dsKeysum=0
+.ERROR: threadsKeysum=833453394371 does not match dsKeysum=0
+.ERROR: threadsKeysum=833860832854 does not match dsKeysum=0
+.ERROR: threadsKeysum=833150130439 does not match dsKeysum=0
+.ERROR: threadsKeysum=833468384792 does not match dsKeysum=0
+.ERROR: threadsKeysum=833913317584 does not match dsKeysum=0
+
+[10/10] Running read-heavy scalability test (1-32 query threads, delay 700µs)...
+Running MyBSTnext-32workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000276 does not match set.size()=1000282
+.ERROR: expected_size=999987 does not match set.size()=999825
+.ERROR: expected_size=1000626 does not match set.size()=1000728
+.ERROR: expected_size=1001072 does not match set.size()=1001210
+.ERROR: expected_size=999048 does not match set.size()=999031
+.ERROR: expected_size=1000150 does not match set.size()=1000316
+.ERROR: expected_size=1000358 does not match set.size()=1000092
+.ERROR: expected_size=999581 does not match set.size()=999601
+.ERROR: expected_size=1000015 does not match set.size()=1000072
+.ERROR: expected_size=999658 does not match set.size()=999636
+.ERROR: expected_size=999698 does not match set.size()=999546
+.ERROR: expected_size=1000271 does not match set.size()=1000318
+.ERROR: expected_size=999347 does not match set.size()=999383
+.ERROR: expected_size=1000097 does not match set.size()=1000296
+.ERROR: expected_size=1000359 does not match set.size()=1000478
+
+Running MyBSTnext-32workloadThreads-4sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000212 does not match set.size()=1000535
+.ERROR: expected_size=996340 does not match set.size()=996307
+.ERROR: expected_size=999760 does not match set.size()=999857
+.ERROR: expected_size=1000236 does not match set.size()=1000388
+.ERROR: expected_size=997959 does not match set.size()=998342
+.ERROR: expected_size=1000564 does not match set.size()=1000496
+.ERROR: expected_size=1000441 does not match set.size()=1000539
+.ERROR: expected_size=1000187 does not match set.size()=999950
+.ERROR: expected_size=997885 does not match set.size()=998194
+.ERROR: expected_size=999007 does not match set.size()=999179
+.ERROR: expected_size=998900 does not match set.size()=999016
+.ERROR: expected_size=999940 does not match set.size()=999742
+.ERROR: expected_size=1000173 does not match set.size()=1000228
+.ERROR: expected_size=998673 does not match set.size()=998656
+.ERROR: expected_size=999928 does not match set.size()=1000319
+
+Running MyBSTnext-32workloadThreads-8sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=999436 does not match set.size()=998985
+.ERROR: expected_size=1000431 does not match set.size()=999906
+.ERROR: expected_size=1000049 does not match set.size()=999769
+.ERROR: expected_size=1000195 does not match set.size()=1000180
+.ERROR: expected_size=999280 does not match set.size()=999482
+.ERROR: expected_size=1001090 does not match set.size()=1001101
+.ERROR: expected_size=1000087 does not match set.size()=999931
+.ERROR: expected_size=1000712 does not match set.size()=1000481
+.ERROR: expected_size=1001219 does not match set.size()=1001133
+.ERROR: expected_size=1000155 does not match set.size()=1000439
+.ERROR: expected_size=999259 does not match set.size()=999027
+.ERROR: expected_size=999878 does not match set.size()=999827
+.ERROR: expected_size=1000512 does not match set.size()=1000894
+.ERROR: expected_size=1000050 does not match set.size()=1000222
+.ERROR: expected_size=999534 does not match set.size()=999429
+
+Running MyBSTnext-32workloadThreads-16sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000095 does not match set.size()=999259
+.ERROR: expected_size=1000586 does not match set.size()=1000140
+.ERROR: expected_size=999627 does not match set.size()=999276
+.ERROR: expected_size=999714 does not match set.size()=1000452
+.ERROR: expected_size=1000161 does not match set.size()=1000825
+.ERROR: expected_size=999822 does not match set.size()=1000051
+.ERROR: expected_size=1000159 does not match set.size()=1000496
+.ERROR: expected_size=1000135 does not match set.size()=1000356
+.ERROR: expected_size=1000623 does not match set.size()=1000298
+.ERROR: expected_size=1000368 does not match set.size()=1000786
+.ERROR: expected_size=999310 does not match set.size()=999914
+.ERROR: expected_size=1000406 does not match set.size()=1000808
+.ERROR: expected_size=1000478 does not match set.size()=1000820
+.ERROR: expected_size=1000461 does not match set.size()=1000877
+.ERROR: expected_size=1000038 does not match set.size()=1000417
+
+Running MyBSTnext-32workloadThreads-32sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: expected_size=1000427 does not match set.size()=999899
+.ERROR: expected_size=999878 does not match set.size()=999936
+.ERROR: expected_size=999237 does not match set.size()=999068
+.ERROR: expected_size=1000082 does not match set.size()=1000755
+.ERROR: expected_size=1000286 does not match set.size()=1000706
+.ERROR: expected_size=999674 does not match set.size()=1000098
+.ERROR: expected_size=999174 does not match set.size()=999813
+.ERROR: expected_size=995862 does not match set.size()=997167
+.ERROR: expected_size=1000292 does not match set.size()=1000877
+.ERROR: expected_size=998165 does not match set.size()=998671
+.ERROR: expected_size=1000598 does not match set.size()=1001102
+.ERROR: expected_size=1000725 does not match set.size()=1000816
+.ERROR: expected_size=1000120 does not match set.size()=1000060
+.ERROR: expected_size=996858 does not match set.size()=998440
+.ERROR: expected_size=999145 does not match set.size()=999691
+
+Running MyBSTBaseline-32workloadThreads-1sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=834528072553 does not match dsKeysum=0
+.ERROR: threadsKeysum=833074640446 does not match dsKeysum=0
+.ERROR: threadsKeysum=834643229849 does not match dsKeysum=0
+.ERROR: threadsKeysum=833851002686 does not match dsKeysum=0
+.ERROR: threadsKeysum=834026424003 does not match dsKeysum=0
+.ERROR: threadsKeysum=834042048192 does not match dsKeysum=0
+.ERROR: threadsKeysum=833940388693 does not match dsKeysum=0
+.ERROR: threadsKeysum=833855888498 does not match dsKeysum=0
+.ERROR: threadsKeysum=832724078513 does not match dsKeysum=0
+.ERROR: threadsKeysum=833751797861 does not match dsKeysum=0
+.ERROR: threadsKeysum=832916294365 does not match dsKeysum=0
+.ERROR: threadsKeysum=832794660641 does not match dsKeysum=0
+.ERROR: threadsKeysum=833592357206 does not match dsKeysum=0
+.ERROR: threadsKeysum=833772956576 does not match dsKeysum=0
+.ERROR: threadsKeysum=833338419988 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-4sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833584239573 does not match dsKeysum=0
+.ERROR: threadsKeysum=832666177221 does not match dsKeysum=0
+.ERROR: threadsKeysum=834009026013 does not match dsKeysum=0
+.ERROR: threadsKeysum=833498128408 does not match dsKeysum=0
+.ERROR: threadsKeysum=832486865095 does not match dsKeysum=0
+.ERROR: threadsKeysum=833536315323 does not match dsKeysum=0
+.ERROR: threadsKeysum=833375441181 does not match dsKeysum=0
+.ERROR: threadsKeysum=833609918050 does not match dsKeysum=0
+.ERROR: threadsKeysum=832355591385 does not match dsKeysum=0
+.ERROR: threadsKeysum=833161338936 does not match dsKeysum=0
+.ERROR: threadsKeysum=832787843979 does not match dsKeysum=0
+.ERROR: threadsKeysum=831251159022 does not match dsKeysum=0
+.ERROR: threadsKeysum=833044851639 does not match dsKeysum=0
+.ERROR: threadsKeysum=833100195463 does not match dsKeysum=0
+.ERROR: threadsKeysum=832952857569 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-8sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=832981506989 does not match dsKeysum=0
+.ERROR: threadsKeysum=833689473999 does not match dsKeysum=0
+.ERROR: threadsKeysum=833907964813 does not match dsKeysum=0
+.ERROR: threadsKeysum=832865648547 does not match dsKeysum=0
+.ERROR: threadsKeysum=833515055304 does not match dsKeysum=0
+.ERROR: threadsKeysum=833892283230 does not match dsKeysum=0
+.ERROR: threadsKeysum=833613027822 does not match dsKeysum=0
+.ERROR: threadsKeysum=832310267284 does not match dsKeysum=0
+.ERROR: threadsKeysum=833127094716 does not match dsKeysum=0
+.ERROR: threadsKeysum=832930287037 does not match dsKeysum=0
+.ERROR: threadsKeysum=834348849101 does not match dsKeysum=0
+.ERROR: threadsKeysum=833616863942 does not match dsKeysum=0
+.ERROR: threadsKeysum=833540498033 does not match dsKeysum=0
+.ERROR: threadsKeysum=834196996640 does not match dsKeysum=0
+.ERROR: threadsKeysum=833696049872 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-16sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=833547247713 does not match dsKeysum=0
+.ERROR: threadsKeysum=833201052580 does not match dsKeysum=0
+.ERROR: threadsKeysum=834040770789 does not match dsKeysum=0
+.ERROR: threadsKeysum=833567377855 does not match dsKeysum=0
+.ERROR: threadsKeysum=833074924021 does not match dsKeysum=0
+.ERROR: threadsKeysum=832949060856 does not match dsKeysum=0
+.ERROR: threadsKeysum=833630022960 does not match dsKeysum=0
+.ERROR: threadsKeysum=833524055957 does not match dsKeysum=0
+.ERROR: threadsKeysum=833880629912 does not match dsKeysum=0
+.ERROR: threadsKeysum=833419118346 does not match dsKeysum=0
+.ERROR: threadsKeysum=833457549246 does not match dsKeysum=0
+.ERROR: threadsKeysum=833191404269 does not match dsKeysum=0
+.ERROR: threadsKeysum=833682651488 does not match dsKeysum=0
+.ERROR: threadsKeysum=834213433551 does not match dsKeysum=0
+.ERROR: threadsKeysum=832933037682 does not match dsKeysum=0
+
+Running MyBSTBaseline-32workloadThreads-32sizeThreads-1000000setSize-3i-2d-95f
+.ERROR: threadsKeysum=832464493985 does not match dsKeysum=0
+.ERROR: threadsKeysum=833608979762 does not match dsKeysum=0
+.ERROR: threadsKeysum=833304669810 does not match dsKeysum=0
+.ERROR: threadsKeysum=833372916982 does not match dsKeysum=0
+.ERROR: threadsKeysum=832876554685 does not match dsKeysum=0
+.ERROR: threadsKeysum=832955415344 does not match dsKeysum=0
+.ERROR: threadsKeysum=832369428697 does not match dsKeysum=0
+.ERROR: threadsKeysum=833817837749 does not match dsKeysum=0
+.ERROR: threadsKeysum=832344911516 does not match dsKeysum=0
+.ERROR: threadsKeysum=832415056060 does not match dsKeysum=0
+.ERROR: threadsKeysum=833579889478 does not match dsKeysum=0
+.ERROR: threadsKeysum=834526992468 does not match dsKeysum=0
+.ERROR: threadsKeysum=833480678614 does not match dsKeysum=0
+.ERROR: threadsKeysum=834308909062 does not match dsKeysum=0
+.ERROR: threadsKeysum=833381571071 does not match dsKeysum=0
+
+
+==========================================
+All tests completed!
+Results saved in: measurements/python_scripts/results_rank_select/
+
+Summary of tests run:
+  Test 1: Update-heavy overhead, 0 query threads - 6 configurations × 10 trials = 60 runs
+  Test 2: Update-heavy overhead, 1 query thread, delay 0 - 6 configurations × 10 trials = 60 runs
+  Test 3: Read-heavy overhead, 0 query threads - 6 configurations × 10 trials = 60 runs
+  Test 4: Read-heavy overhead, 1 query thread, delay 0 - 6 configurations × 10 trials = 60 runs
+  Test 5: Update-heavy overhead, 1 query thread, delay 700µs - 6 configurations × 10 trials = 60 runs
+  Test 6: Read-heavy overhead, 1 query thread, delay 700µs - 6 configurations × 10 trials = 60 runs
+  Test 7: Update-heavy scalability, 1-32 query threads, delay 0 - 5 configurations × 10 trials = 50 runs
+  Test 8: Read-heavy scalability, 1-32 query threads, delay 0 - 5 configurations × 10 trials = 50 runs
+  Test 9: Update-heavy scalability, 1-32 query threads, delay 700µs - 5 configurations × 10 trials = 50 runs
+  Test 10: Read-heavy scalability, 1-32 query threads, delay 700µs - 5 configurations × 10 trials = 50 runs
+  TOTAL: 560 test runs with 2 implementations = 1120 individual benchmarks
+
+Extended from Handshake paper methodology (10 test types, 560 runs)
+Tests rank/select operations instead of size operations.
+Added scalability tests with 700µs delay to measure query scaling
+with infrequent queries (less handshake pressure).
+
+To generate plots, run:
+  cd measurements/python_scripts
+  python3 plot_graphs_from_existing_results.py --results_dir results_rank_select
+==========================================

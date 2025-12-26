@@ -130,12 +130,14 @@ public class MyBSTBaseline<K extends Comparable<? super K>, V> {
 
     /** PRECONDITION: key CANNOT BE NULL **/
     public final boolean containsKey(final K key) {
-        return get(key) != null;
+        // Use Version tree for linearizable snapshot-based contains
+        return containsKeySnapshot(key);
     }
 
     /** PRECONDITION: key CANNOT BE NULL **/
     public final V get(final K key) {
         if (key == null) throw new NullPointerException();
+        // Must use BST navigation because Version tree doesn't store values
         Node<K,V> l = root.left;
         while (l.getClass() == InternalNode.class) {
             l = (l.key == null || key.compareTo(l.key) < 0) ? ((InternalNode<K,V>)l).left : ((InternalNode<K,V>)l).right;
