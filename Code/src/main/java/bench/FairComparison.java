@@ -1,6 +1,6 @@
 package bench;
 
-import bst.MyBSTv2;
+import bst.MyBSTnext;
 import bst.MyBSTBaseline;
 import java.util.*;
 import java.util.concurrent.*;
@@ -28,7 +28,7 @@ public class FairComparison {
     }
 
     static class HandshakeWrapper implements BSTInterface {
-        private final MyBSTv2<Integer,Integer> map = new MyBSTv2<>();
+        private final MyBSTnext<Integer,Integer> map = new MyBSTnext<>();
         public void insert(int k) { map.put(k, k); }
         public void delete(int k) { map.remove(k); }
         public Integer get(int k) { return map.get(k); }

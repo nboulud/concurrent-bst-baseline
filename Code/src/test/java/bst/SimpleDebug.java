@@ -1,3 +1,4 @@
+package bst;
 import bst.MyBSTnext;
 
 public class SimpleDebug {

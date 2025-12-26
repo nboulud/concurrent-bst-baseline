@@ -11,10 +11,8 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
     private static final int FAST_PHASE = -2;
     private static final int MAX_THREADS = 256;  
     
-    // private final LockFreeLinkedList list; // Ensure no ABA problems (UNUSED - legacy code)
     private final AtomicReferenceArray<AtomicLong> opPhase; // opPhase for each thread
     private final AtomicLong queriesPhase; // Global synchronization for query operations (size, rank, select)
-    private final AtomicReferenceArray<AtomicLong> fastMetadataCounters; // fast counters for each thread (UNUSED in MyBSTnext)
     private final AtomicLong maxThreadID;  // Track highest thread ID seen (opt)
     private final AtomicLong activeReaders;  // Count of active aggregate queries in slow path
     
@@ -51,7 +49,7 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
         final Version<E> left;
         final Version<E> right;
         final int nbChild;    
-        final Node<E,?> node; // reference back to node for accessing fast path metadata
+        final Node<E,?> node; 
 
         Version(E key, Version<E> left, Version<E> right, int nbChild, Node<E,?> node) {
             this.key = key;
@@ -90,7 +88,7 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
         volatile Version<E> version;
         final AtomicLong fastSize;  // Fast path metadata for size
         volatile Version<E> forwardingPtr;  // Points to replacement Version (for query navigation)
-        volatile Node<E,V> reversePtr;  // Points to predecessor (for chain compression) - can be leaf or internal
+        volatile Node<E,V> reversePtr;  // Points to predecessor (for chain compression), can be leaf or internal
 
 
         InternalNode(final E key, final LeafNode<E,V> left, final LeafNode<E,V> right) {
@@ -169,12 +167,10 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
         // Initialize handshake infrastructure
         this.queriesPhase = new AtomicLong(0);  // Start at 0 (mod 4 = 0 means fast path)
         this.opPhase = new AtomicReferenceArray<>(MAX_THREADS);
-        this.fastMetadataCounters = new AtomicReferenceArray<>(MAX_THREADS);  // Unused in MyBSTnext
         this.maxThreadID = new AtomicLong(-1);  // Track highest thread ID for optimization
         this.activeReaders = new AtomicLong(0);  // No active aggregate queries initially
         for (int i = 0; i < MAX_THREADS; i++) {
             this.opPhase.set(i, new AtomicLong(IDLE_PHASE));
-            this.fastMetadataCounters.set(i, new AtomicLong(0));
         }
         
         // to avoid handling special case when <= 2 nodes,
@@ -211,7 +207,6 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
             V result = getViaVersionTree(key);
             
             // After getting the result, check if we are still in a slow phase.
-            // We accept different slow phases (e.g. 2 -> 6) but not if we went through fast phase.
             long exitPhase = queriesPhase.get();
             if ((exitPhase & 3) == 2) {
                 // Still in a slow phase - result is valid
@@ -286,11 +281,10 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
             InternalNode<K,V> newInternal;
             LeafNode<K,V> newSibling, newNode;
 
-            /** SEARCH VARIABLES **/
+            //Search varaiables 
             InternalNode<K,V> p;
             Info<K,V> pinfo;
             Node<K,V> l;
-            /** END SEARCH VARIABLES **/
 
             newNode = new LeafNode<K,V>(key, value);
 
@@ -351,7 +345,6 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
                         return null;
                     } else {
                         // if fails, help the current operation
-                        // [CHECK]
                         // need to get the latest p.info since CAS doesnt return current value
                         help(p.info);
                     }
@@ -384,11 +377,11 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
             IInfo<K, V> newPInfo;
             V result;
 
-            /** SEARCH VARIABLES **/
+            //Search varaiables 
             InternalNode<K, V> p;
             Info<K, V> pinfo;
             Node<K, V> l;
-            /** END SEARCH VARIABLES **/
+
             newNode = new LeafNode<K, V>(key, value);
 
             while (true) {
@@ -481,13 +474,14 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
         }
         
         try {
-            /** SEARCH VARIABLES **/
+            
+            //Search varaiables 
             InternalNode<K,V> gp;
             Info<K,V> gpinfo;
             InternalNode<K,V> p;
             Info<K,V> pinfo;
             Node<K,V> l;
-            /** END SEARCH VARIABLES **/
+            
 
             while (true) {
                 // Re-check phase on every retry to respond quickly to handshakes
@@ -718,10 +712,6 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
         infoUpdater.compareAndSet(info.gp, info, new Clean<>());
     }
 
-    private static <E extends Comparable<? super E>, T> Version<E> childVersion(Node<E,T> n) {
-        if (n instanceof InternalNode) return ((InternalNode<E,T>) n).version;
-        return ((LeafNode<E,T>) n).version;
-    }
 
     private static <E extends Comparable<? super E>, T> boolean refresh(InternalNode<E,T> x) {
         // snapshot old
@@ -745,8 +735,6 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
         return versionUpdater.compareAndSet(x, old, newer);
     }
     
-    // refreshFast() removed in MyBSTnext - fast path doesn't update Version tree structure
-
     private static <E extends Comparable<? super E>, T> void propagate(Node<E,T> start) {
         Node<E,T> x = start;
         int tries = 0;
@@ -759,8 +747,24 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
             x = x.parent;
         }
     }
+
+    /**
+     * Update ONLY fastSize along the path from the given node to the root.
+     * MyBSTnext does NOT update Version tree structure in fast path - uses forwarding pointers instead.
+     */
+    private void fastUpdateMetadataOnly(int delta, Node<K,V> startNode) {
+        Node<K,V> current = startNode;
+        while (current != null) {
+            if (current instanceof InternalNode) {
+                InternalNode<K,V> internal = (InternalNode<K,V>) current;
+                // Update fastSize only - no Version tree updates
+                internal.fastSize.addAndGet(delta);
+            }
+            // Leaf nodes don't need updates - their fastSize is fixed at creation
+            current = current.parent;
+        }
+    }
     
-    // updateVersionStructureFast() removed in MyBSTnext - no longer needed with forwarding pointers
 
     //--------------------------------------------------------------------------------
     // HANDSHAKE MECHANISM
@@ -874,43 +878,12 @@ public class MyBSTnext<K extends Comparable<? super K>, V> {
         }
     }
     
-    private long computeFastSize() {
-        // Only sum active threads (optimization)
-        int activeThreads = (int)maxThreadID.get() + 1;
-        if (activeThreads <= 0) return 0;
-        
-        long fastSize = 0;
-        for (int tid = 0; tid < activeThreads; tid++) {
-            fastSize += fastMetadataCounters.get(tid).get();
-        }
-        return fastSize;
-    }
     
-    /**
-     * Update ONLY fastSize along the path from the given node to the root.
-     * MyBSTnext does NOT update Version tree structure in fast path - uses forwarding pointers instead.
-     */
-    private void fastUpdateMetadataOnly(int delta, Node<K,V> startNode) {
-        Node<K,V> current = startNode;
-        while (current != null) {
-            if (current instanceof InternalNode) {
-                InternalNode<K,V> internal = (InternalNode<K,V>) current;
-                // Update fastSize only - no Version tree updates
-                internal.fastSize.addAndGet(delta);
-            }
-            // Leaf nodes don't need updates - their fastSize is fixed at creation
-            current = current.parent;
-        }
-    }
     
     //--------------------------------------------------------------------------------
     // FAST AND SLOW PATH OPERATIONS
     //--------------------------------------------------------------------------------
     
-    private boolean isSlowPathActive() {
-        long phase = getQueriesPhase();
-        return (phase & 3) != 0;  // Not in fast path if (phase & 3) != 0
-    }
     
     /**
      *

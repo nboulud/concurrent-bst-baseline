@@ -1,6 +1,6 @@
 package bench;
 
-import bst.MyBST;
+import bst.MyBSTnext;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Random;
@@ -12,7 +12,7 @@ import java.util.Random;
 public class CorrectnessTest {
 
     static class TestBST {
-        private final MyBST<Integer,Integer> map = new MyBST<>();
+        private final MyBSTnext<Integer,Integer> map = new MyBSTnext<>();
         private final AtomicInteger actualInserts = new AtomicInteger(0);
         private final AtomicInteger actualDeletes = new AtomicInteger(0);
         

@@ -18,9 +18,6 @@ The following Java files in `src/main/java/bst/` correspond to the algorithms di
 ## Testing
 To ensure the correctness of the complex concurrency mechanisms (especially the interaction between Fast and Slow paths), specific test suites were developed and are located in `src/test/java/bst/`:
 
-*   **`TestMyBSTnext.java`**: A comprehensive sequential test suite. It verifies that `rank`, `select`, and `size` operations return correct results after various sequences of inserts and deletes, ensuring the logical correctness of the forwarding pointer traversal.
-*   **`TestMyBSTnextConcurrent.java`**: A concurrent stress test. It spawns multiple threads performing mixed operations (updates and queries) simultaneously to detect race conditions, deadlocks, or linearizability violations in the handshake protocol.
-
 ## Benchmarking and External Code
 The performance evaluation presented in the report was conducted using a robust benchmarking framework on an **EPFL server with 96 hardware threads**.
 

@@ -1,6 +1,6 @@
 package bench;
 
-import bst.MyBST;
+import bst.MyBSTnext;
 import bst.MyBSTBaseline;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -28,7 +28,7 @@ public class ComprehensiveBenchmark {
     }
 
     static class HandshakeWrapper implements BSTInterface {
-        private final MyBST<Integer,Integer> map = new MyBST<>();
+        private final MyBSTnext<Integer,Integer> map = new MyBSTnext<>();
         public void insert(int k) { map.put(k, k); }
         public void delete(int k) { map.remove(k); }
         public Integer get(int k) { return map.get(k); }

@@ -1,6 +1,6 @@
 package bench;
 
-import bst.MyBST;
+import bst.MyBSTnext;
 import bst.MyBSTBaseline;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -61,7 +61,7 @@ public class AcademicStyleBenchmark {
     }
     
     static class MyBSTWrapper implements BSTAdapter {
-        private final MyBST<Integer, Integer> tree = new MyBST<>();
+        private final MyBSTnext<Integer, Integer> tree = new MyBSTnext<>();
         
         @Override
         public boolean insert(int key) {
