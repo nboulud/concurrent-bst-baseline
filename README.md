@@ -23,7 +23,7 @@ The performance evaluation presented in the report was conducted using a robust 
 
 I also included my own custom benchmarking code in the **`src/main/java/bench/`** directory. This folder contains specific performance tests (such as `ComprehensiveBenchmark.java` and `FairComparison.java`) that I implemented to evaluate the algorithms directly on the server, allowing for fine-tuned performance analysis separate from the main comparison framework.
 
-**Note on Benchmarking Code:**
+**Note on the code of the benchmark used for the report :**
 To respect the original authors' work and avoid copyright issues, the benchmarking infrastructure and the standard **Non-Augmented BST** implementation are **not included** in this repository.
 
 This project is a continuation of the work presented in:
