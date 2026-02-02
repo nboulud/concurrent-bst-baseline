@@ -63,9 +63,43 @@ We compare our approach against the \textbf{LockFreeBST} (implemented as \codest
 
 \section{Background and Related Work}
 
-Our work builds upon three key prior contributions. Ellen et al. \cite{ellen2010nonblocking} introduced a practical lock-free BST using fine-grained Compare-and-Swap (CAS) operations and a cooperative helping mechanism to resolve conflicts. While highly efficient for standard updates (\ins{}, \del{}, \contains{}), this structure provides no mechanism for aggregate queries. 
+Our work builds upon three key prior contributions. Ellen et al. \cite{ellen2010nonblocking} introduced a practical lock-free BST using fine-grained Compare-and-Swap (CAS) operations and a cooperative helping mechanism to resolve conflicts. While highly efficient for standard updates (\ins{}, \del{}, \contains{}), this structure provides no mechanism for aggregate queries. Figure~\ref{fig:ellen-operations} illustrates the lock-free insert and delete operations from Ellen et al.'s work, showing how structural modifications are performed using atomic CAS operations.
 
-Fatourou and Ruppert \cite{fatourou2024lockfree} extended this foundation by augmenting each BST node with immutable \codestyle{Version} objects. Each Version forms a snapshot of the tree at a specific point in time, storing subtree metadata (\codestyle{nbChild}) that enables wait-free computation of \size{}, \rank{}, and \select{}. The key insight is that updates propagate new Version objects from modified nodes to the root, creating a consistent view for concurrent queries. However, this generality comes at a cost: \textit{every} update must allocate and CAS new Version nodes along a path to the root, even when no queries are running.
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/elen_insert.png}
+    \caption*{Insert operation: Adding key 5 to tree (4,2)}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/ellen_delete.png}
+    \caption*{Delete operation: Removing key 5 from tree (2,4,5)}
+\end{minipage}
+\caption{Lock-free BST operations from Ellen et al. \cite{ellen2010nonblocking}}
+\label{fig:ellen-operations}
+\end{figure}
+
+Fatourou and Ruppert \cite{fatourou2024lockfree} extended this foundation by augmenting each BST node with immutable \codestyle{Version} objects. Each Version forms a snapshot of the tree at a specific point in time, storing subtree metadata (\codestyle{nbChild}) that enables wait-free computation of \size{}, \rank{}, and \select{}. The key insight is that updates propagate new Version objects from modified nodes to the root, creating a consistent view for concurrent queries. However, this generality comes at a cost: \textit{every} update must allocate and CAS new Version nodes along a path to the root, even when no queries are running. Figure~\ref{fig:fatourou-propagation} demonstrates this propagation mechanism, showing how an insert operation creates new Version nodes along the path from the modified node to the root.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/propagate_context.png}
+    \caption*{Before insert: Original Version tree}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/propagate_insert.png}
+    \caption*{After insert: New Versions propagated to root}
+\end{minipage}
+\caption{Version propagation in Lock-Free Augmented BST \cite{fatourou2024lockfree}}
+\label{fig:fatourou-propagation}
+\end{figure}
 
 Sela et al. \cite{sela2025handshake} proposed the Handshake synchronization technique to address this overhead for simpler data structures. The handshake protocol coordinates transitions between a ``fast path'' (no synchronization overhead) and a ``slow path'' (full coordination) based on query demand. Their implementation demonstrated dramatic speedups for a global \size{} counter, but relied on thread-local accumulation rather than per-node metadata.
 
@@ -168,6 +202,15 @@ The core of the fast path is updating \codestyle{fastSize} metadata without touc
 
 The fundamental operation of the fast path is to update the metadata without modifying the expensive Version tree. When a fast insert or delete occurs, instead of propagating a new Version path to the root (which requires creating new objects and CAS operations), the operation simply updates the \codestyle{fastSize} counters along the path from the modified node to the root. This is done using atomic \codestyle{addAndGet} operations on the \codestyle{fastSize} field of each node. This approach avoids all object allocation and CAS contention on the Version structure, making updates significantly lighter. However, this leaves the Version tree in a stale state, which necessitates the forwarding pointer mechanism described next.
 
+Figure~\ref{fig:fast-slow-metadata} illustrates how fast metadata (\codestyle{fastSize}) and slow metadata (\codestyle{Version} with \codestyle{nbChild}) coexist after a fast operation. The fast path updates only the \codestyle{fastSize} counters, leaving the Version tree unchanged.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{images/fast_path.png}
+\caption{Fast and slow metadata coexisting after a fast operation. Fast path updates \codestyle{fastSize} only, leaving Version tree stale (Red : fast metadata, Green : sum of slow and fast metadata).}
+\label{fig:fast-slow-metadata}
+\end{figure}
+
 \subsection{Step 2: Adding Forwarding Pointers for Navigation}
 \label{sec:fast-path-forwarding}
 
@@ -239,7 +282,41 @@ For example, in a fast insert, the leaf node that is replaced by a new internal 
 
 This allows a query traversing the stale Version tree to detect when it has reached an obsolete node. By following the \codestyle{forwardingPtr}, the query can ``jump'' from the stale snapshot to the valid, current portion of the BST (specifically, the \codestyle{Version} of the replacement node), where it can continue its traversal or read the up-to-date \codestyle{fastSize} metadata.
 
+Figure~\ref{fig:forwarding-pointer} shows how forwarding pointers enable queries to navigate from stale Version nodes to current replacement nodes. When a node becomes orphaned during a fast operation, its \codestyle{forwardingPtr} redirects queries to the valid replacement in the updated tree structure.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{images/FP_exp.png}
+\caption{Forwarding pointer mechanism: orphaned nodes redirect queries to replacement nodes}
+\label{fig:forwarding-pointer}
+\end{figure}
+
 However, a problem arises when multiple fast operations occur in the same vicinity. A node might be replaced, and its replacement might itself be replaced shortly after, creating a chain of forwarding pointers (Node A $\to$ Node B $\to$ Node C). Traversing these chains adds overhead to queries. This motivates the need for chain compression, which we address in the next step.
+
+Figure~\ref{fig:chain-formation} illustrates how chains of forwarding pointers can form through successive fast operations. Starting from a normal tree state, an insert creates one forwarding pointer, and a subsequent delete creates another, resulting in a chain that queries would need to traverse.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/FP_context.png}
+    \caption*{Initial tree state}
+\end{minipage}
+\hfill
+\begin{minipage}{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/FP_insert.png}
+    \caption*{After fast insert: one forwarding pointer}
+\end{minipage}
+\hfill
+\begin{minipage}{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/FP_delete.png}
+    \caption*{After fast delete: chain of forwarding pointers}
+\end{minipage}
+\caption{Formation of forwarding pointer chains through successive fast operations}
+\label{fig:chain-formation}
+\end{figure}
 
 \subsection{Step 3: Chain Compression with Reverse Pointers}
 \label{sec:chain-compression}
@@ -338,6 +415,25 @@ The \codestyle{reversePtr} field allows a node to point back to its predecessor 
 If the replacement node already points forward to another target, the operation can ``short-circuit'' the chain by pointing the orphaned node directly to the final target. Conversely, if the orphaned node was already the target of a previous forwarding pointer (indicated by \codestyle{reversePtr}), we can update that predecessor to point directly to the new replacement.
 
 By maintaining these reverse links, we ensure that any sequence of updates compresses the forwarding path such that the depth of any chain remains effectively constant (at most 1). This guarantees that queries never need to traverse more than one forwarding pointer to reach valid data, preserving the efficiency of the fast path even under heavy update loads.
+
+Figure~\ref{fig:reverse-pointers} demonstrates how reverse pointers enable chain compression. After the insert operation, a reverse pointer is established from the orphaned node to its successor. When the delete operation occurs, the reverse pointer allows the predecessor to bypass the intermediate node and point directly to the final target, maintaining a chain depth of at most 1.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/RP_insert.png}
+    \caption*{After insert: reverse pointer established}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/RP_delete.png}
+    \caption*{After insert and delete: chain compressed using reverse pointer}
+\end{minipage}
+\caption{Reverse pointers enabling constant-time chain compression}
+\label{fig:reverse-pointers}
+\end{figure}
 
 \section{Aggregate Query Implementation}
 
